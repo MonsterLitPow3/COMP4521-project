@@ -8,18 +8,34 @@ It was initialized using the following command:
 npx @react-native-reusables/cli@latest init -t COMP4521-project
 ```
 
+1. We are using pnpm as main package manager.
+2. We are using **development build** instead of Expo Go.
+
 ## Getting Started
 
-To run the development server:
+1. Install dependencies:
 
 ```bash
-    npm run dev
-    # or
-    yarn dev
-    # or
+    npm install -g eas-cli
+    pnpm i
+```
+
+2. Build the app:
+
+**Android**:
+```bash
+    eas build --profile development --platform android
+```
+
+**iOS**:
+```bash
+    eas build --profile development --platform ios
+```
+
+4. Run the development server:
+
+```bash
     pnpm dev
-    # or
-    bun dev
 ```
 
 This will start the Expo Dev Server. Open the app in:
