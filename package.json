@@ -8,7 +8,8 @@
     "ios": "expo start -c --ios",
     "web": "expo start -c --web",
     "clean": "rm -rf .expo node_modules",
-    "dep:check": "expo install --check"
+    "dep:check": "expo install --check",
+    "labubu": "eas build --platform android --profile development"
   },
   "dependencies": {
     "@react-navigation/native": "^7.0.0",
