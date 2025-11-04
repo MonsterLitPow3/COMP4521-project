@@ -83,6 +83,13 @@ export default function Screen() {
             }}>
             <Text>Go to settings</Text>
           </Button>
+          {/* //////////////////// */}
+          <Button
+            onPress={() => {
+              router.push('/Dashboard');
+            }}>
+            <Text>Go to Dashboard</Text>
+          </Button>
         </View>
       </View>
     </>
