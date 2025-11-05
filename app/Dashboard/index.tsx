@@ -40,10 +40,10 @@ export default function DashBoard() {
           <Ionicons name="search-outline" size={24} color="black" className="ml-7 mt-1" />
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-xl">Task 1</CardTitle>
@@ -64,10 +64,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-lg">Task 2</CardTitle>
@@ -87,10 +87,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-lg">Task 3</CardTitle>
@@ -110,10 +110,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-xl">Task 4</CardTitle>
@@ -133,10 +133,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-xl">Task 5</CardTitle>
@@ -156,10 +156,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 flex items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
             <CardHeader className="flex-row">
               <CardHeader>
                 <CardTitle className="text-lg">Task 6</CardTitle>

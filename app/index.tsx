@@ -42,7 +42,7 @@ export default function Screen() {
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
         <Card>
           <CardHeader>
-            <CardTitle>Card Title</CardTitle>
+            <CardTitle>Card Testing SFESFDESF</CardTitle>
             <CardDescription>Card Description</CardDescription>
           </CardHeader>
           <CardContent>

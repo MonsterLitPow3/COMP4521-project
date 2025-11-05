@@ -40,10 +40,10 @@ export default function DashBoard() {
           <Ionicons name="search-outline" size={24} color="black" className="ml-7 mt-1" />
         </View> */}
 
-        <View
-          className="mb-5 mt-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col bg-slate-100 shadow-inherit">
+        <View className="mb-5 mt-5 w-max items-center justify-center">
+          <Card
+            className="w-80 flex-col bg-slate-100 shadow-inherit"
+            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
             <CardHeader className="-ml-5 w-max flex-row">
               <CardHeader>
                 <CardTitle className="mt-0.5 text-xl text-gray-500">Sub-Task 1</CardTitle>
@@ -84,10 +84,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 w-max items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
             <CardHeader className="-ml-5 w-max flex-row">
               <CardHeader>
                 <CardTitle className="mt-0.5 text-xl">Sub-Task 2</CardTitle>
@@ -117,10 +117,10 @@ export default function DashBoard() {
           </Card>
         </View>
 
-        <View
-          className="mb-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col">
+        <View className="mb-5 w-max items-center justify-center">
+          <Card
+            className="w-80 flex-col"
+            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
             <CardHeader className="-ml-5 w-max flex-row">
               <CardHeader>
                 <CardTitle className="mt-0.5 text-xl">Sub-Task 3</CardTitle>
