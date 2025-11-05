@@ -1,4 +1,4 @@
-import { View, Text, Button } from 'react-native';
+import { View, Text } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/ui/search_input';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -21,6 +21,7 @@ import { Add_New_Progress } from '@/components/ui/Add_New_Progress';
 import MaterialCommunityIcons from '@expo/vector-icons/build/MaterialCommunityIcons';
 import { router } from 'expo-router/build/imperative-api';
 import { useRouter } from 'expo-router';
+import { Button } from '@/components/ui/button';
 
 export default function DashBoard() {
   const router = useRouter();
@@ -130,14 +131,20 @@ export default function DashBoard() {
             </CardContent>
           </Card>
 
-          <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+          <View className="h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm shadow-black">
             <MaterialCommunityIcons
               onPress={() => router.push('/Dashboard/index_4')}
               name="plus"
-              size={25}
+              size={20}
               color="black"
-              className="m-1 flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white p-2 shadow-lg"
+              className=""
             />
+          </View>
+
+          <View className="mt-5 h-max w-max flex-row items-center justify-center">
+            <Button className="">
+              <Text className="color-white">Pulish Task</Text>
+            </Button>
           </View>
           {/* <Add_New_Progress/> */}
         </View>
