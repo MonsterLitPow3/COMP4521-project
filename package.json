@@ -9,7 +9,9 @@
     "web": "expo start -c --web",
     "clean": "rm -rf .expo node_modules",
     "dep:check": "expo install --check",
-    "labubu": "eas build --platform android --profile development"
+    "labubu": "eas build --platform android --profile development",
+    "build:ios": "eas build --platform ios --profile development",
+    "build:all": "eas build --profile development"
   },
   "dependencies": {
     "@react-navigation/native": "^7.0.0",
