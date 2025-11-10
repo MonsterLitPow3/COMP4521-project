@@ -1,0 +1,44 @@
+// {
+//     "name": "tesla",
+//     "id": "23jgkdjdsdjf",
+//     "description": "this is a car, electric",
+//     "object": {
+//         "model_no": "2003g",
+//         "detail": "no detail",
+//     }
+    
+// }
+
+
+
+// yoyo.object.detail -> no detail
+// yoyo.detail -> invalid
+
+
+
+// save:[
+//             frontend                                    backend
+//     user input -> data to api -> backend receive request from api -> add data to database
+// ]
+
+// load:[
+//         frontend                    backend                         frontend
+//     request data from api -> backend gives out required data -> display to clients
+// ]
+
+// schema
+// 0: what, 1: what, 2: what
+{
+    "taskName": "task1",
+    "ddlDate": "YYYY/MM/DD",
+    "ddlTime": "HH:MM:SS",
+    "taskStatus": 0,
+    "progress": 90
+}
+
+
+test = "0",
+test_2 = 0
+
+test === test_2 -> false
+test == test_2 -> true
