@@ -14,7 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { vm } from '@/utils/ViewModel';
+// import { vm } from '@/utils/ViewModel';
+import { supabase } from '@/utils/supabase-client';
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
@@ -47,27 +48,6 @@ export default function Screen() {
   const [taskTitleInput, setTaskTitleInput] = React.useState<string>('');
   const [taskDescInput, setTaskDescInput] = React.useState<string>('');
   const [taskDueInput, setTaskDueInput] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    // Subscribe to auth state
-    // there are some delay with subscriptions, so the  
-    const unsubscribeSession = vm.subscribe('session', setSession);
-    const unsubscribeLoading = vm.subscribe('loading', setLoading);
-    const unsubscribeTeams = vm.subscribe('teams', setTeams);
-    const unsubscribeCurrentTeam = vm.subscribe('currentTeam', setCurrentTeam);
-
-    // Load user teams when authenticated
-    if (vm.isAuthenticated()) {
-      vm.loadUserTeams();
-    }
-
-    return () => {
-      unsubscribeSession();
-      unsubscribeLoading();
-      unsubscribeTeams();
-      unsubscribeCurrentTeam();
-    };
-  }, []);
 
   // Handle sign up
   const handleSignUp = async () => {
@@ -295,33 +275,13 @@ export default function Screen() {
         >
           <Text>{loading ? 'Please wait...' : 'Creating Task'}</Text>
         </Button>
-        <View className="gap-2 p-4">
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            1. Edit <Text variant="code">app/index.tsx</Text> to get started.
-          </Text>
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            2. Save to see your changes instantly.
-          </Text>
-        </View>
         <View className="flex-col gap-2">
-          <Link href="https://reactnativereusables.com" asChild>
-            <Button>
-              <Text>Browse the documents</Text>
-            </Button>
-          </Link>
-          <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
-            <Button variant="ghost">
-              <Text>Star the Repo</Text>
-              <Icon as={StarIcon} />
-            </Button>
-          </Link>
           <Button
             onPress={() => {
               router.push('/settings');
             }}>
             <Text>Go to settings</Text>
           </Button>
-          {/* //////////////////// */}
           <Button
             onPress={() => {
               router.push('/Dashboard');
