@@ -257,7 +257,7 @@ export default function Screen() {
         >
           <Text>{loading ? 'Please wait...' : 'Creating Team'}</Text>
         </Button>
-        <Text>{currentTeam ? `Current team: ${currentTeam.name} with id: ${currentTeam.id}` : 'No team selected'}</Text>
+        <Text>{currentTeam ? `Current team: ${currentTeam.name} with id: ${currentTeam.teamId}` : 'No team selected'}</Text>
         <Text className="text-sm text-muted-foreground">Task Title</Text>
         <TextInput
           value={taskTitleInput}
@@ -295,23 +295,6 @@ export default function Screen() {
         >
           <Text>{loading ? 'Please wait...' : 'Creating Task'}</Text>
         </Button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Card Title</CardTitle>
-            <CardDescription>Card Description</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Text>Card Content</Text>
-          </CardContent>
-          <CardFooter className="flex-col gap-2">
-            <Button className="w-full">
-              <Text>Subscribe</Text>
-            </Button>
-            <Button variant="outline" className="w-full bg-red-300">
-              <Text>Later</Text>
-            </Button>
-          </CardFooter>
-        </Card>
         <View className="gap-2 p-4">
           <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
             1. Edit <Text variant="code">app/index.tsx</Text> to get started.

@@ -28,6 +28,7 @@ CREATE TABLE public.TaskProgress (
   pId bigint GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   taskId bigint NOT NULL,
   desc text NOT NULL,
+  done boolean NOT NULL DEFAULT false,
   CONSTRAINT TaskProgress_pkey PRIMARY KEY (pId, taskId),
   CONSTRAINT TaskProgress_taskId_fkey FOREIGN KEY (taskId) REFERENCES public.Tasks(taskId)
 );
@@ -129,7 +130,6 @@ class Repository {
         const { data, error } = await supabase
             .from('TeamMembers')
             .select(`
-                teamId,
                 Teams!TeamMembers_teamId_fkey (
                     teamId,
                     name,
