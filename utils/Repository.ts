@@ -214,15 +214,16 @@ class Repository {
         return { data, error };
     }
 
-    createTask = async (taskData: {
-        teamId: number;
-        title: string;
-        desc: string;
-        due?: string;
-    }) => {
+    createTask = async (
+        teamId: number,
+        title: string,
+        desc: string,
+        due?: number | null
+    ) => {
+        const dueDate = due ? new Date(due).toISOString() : null;
         const { data, error } = await supabase
             .from('Tasks')
-            .insert([taskData])
+            .insert([{ teamId, title, desc, due: dueDate }])
             .select();
         
         console.log('Repo: Creating task:', data, 'Error:', error);

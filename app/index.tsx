@@ -44,6 +44,9 @@ export default function Screen() {
   const [inputTeam, setInputTeam] = React.useState<string>('');
   const [teams, setTeams] = React.useState<any[]>([]);
   const [currentTeam, setCurrentTeam] = React.useState<any>(null);
+  const [taskTitleInput, setTaskTitleInput] = React.useState<string>('');
+  const [taskDescInput, setTaskDescInput] = React.useState<string>('');
+  const [taskDueInput, setTaskDueInput] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     // Subscribe to auth state
@@ -128,6 +131,7 @@ export default function Screen() {
     }
   };
 
+  // need testing
   const handleCreateTeam = async () => {
     setMessage(null);
     try {
@@ -144,16 +148,15 @@ export default function Screen() {
     }
   };
 
+  // need testing
   const handleCreateTask = async () => {
     setMessage(null);
     try {
-      const { error } = await vm.createTask();
+      const { error } = await vm.createTask(taskTitleInput, taskDescInput, taskDueInput);
       if (error) {
         setMessage(error.message);
       } else {
-        setMessage('Signed out successfully');
-        // Optionally navigate to dashboard after successful sign in
-        // router.push('/Dashboard');
+        setMessage('Add task successfully');
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -254,14 +257,43 @@ export default function Screen() {
         >
           <Text>{loading ? 'Please wait...' : 'Creating Team'}</Text>
         </Button>
-        <Text>{currentTeam ? `Current team: ${currentTeam.name}` : 'No team selected'}</Text>
+        <Text>{currentTeam ? `Current team: ${currentTeam.name} with id: ${currentTeam.id}` : 'No team selected'}</Text>
+        <Text className="text-sm text-muted-foreground">Task Title</Text>
+        <TextInput
+          value={taskTitleInput}
+          onChangeText={setTaskTitleInput}
+          placeholder="enter task title"
+          className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+        />
+        <Text className="text-sm text-muted-foreground">Task Description</Text>
+        <TextInput
+          value={taskDescInput}
+          onChangeText={setTaskDescInput}
+          placeholder="enter task description"
+          className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+        />
+        <Text className="text-sm text-muted-foreground">Task Due (optional)</Text>
+        <TextInput
+          value={taskDueInput ? taskDueInput.toString() : ''}
+          onChangeText={(text) => {
+            const timestamp = parseInt(text, 10);
+            if (!isNaN(timestamp)) {
+              setTaskDueInput(timestamp);
+            } else {
+              setTaskDueInput(null);
+            }
+          }}
+          placeholder="enter task due as timestamp, should be date picker later I guess"
+          keyboardType="numeric"
+          className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+        />
         <Button
         variant="outline"
           disabled={loading}
           onPress={handleCreateTask}
           className="flex-1"
         >
-          <Text>{loading ? 'Please wait...' : 'Creating Team'}</Text>
+          <Text>{loading ? 'Please wait...' : 'Creating Task'}</Text>
         </Button>
         <Card>
           <CardHeader>

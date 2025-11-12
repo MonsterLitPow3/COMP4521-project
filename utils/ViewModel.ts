@@ -69,6 +69,7 @@ class ViewModel {
         this.notifyListeners(key, value);
     }
 
+    // not tested yet, but works as I tried
     private notifyListeners<K extends StateKey>(key: K, value: AppState[K]) {
         const keyListeners = this.listeners.get(key);
         if (keyListeners) {
@@ -77,6 +78,7 @@ class ViewModel {
     }
 
     // Public subscription API
+    // not tested yet, but works as I tried
     subscribe<K extends StateKey>(key: K, listener: Listener<AppState[K]>) {
         console.log(`ViewModel: State ${key} being subscribed`);
         const keyListeners = this.listeners.get(key);
@@ -104,6 +106,7 @@ class ViewModel {
         return this.state.session !== null;
     }
 
+    // will add value checking later
     async signUpWithEmail(email: string, password: string) {
         try {
             this.setState('loading', true);
@@ -141,6 +144,7 @@ class ViewModel {
     }
 
     // Data fetching methods
+    // seems ok
     async loadUserTeams() {
         if (!this.state.session?.user) return;
 
@@ -162,6 +166,7 @@ class ViewModel {
         }
     }
 
+    // not tested yet
     async loadTeamTasks(teamId: number) {
         try {
             const result = await repository.fetchTeamTasks(teamId);
@@ -173,6 +178,7 @@ class ViewModel {
         }
     }
 
+    // not tested yet
     async loadMemberTasks(mId: number) {
         try {
             const result = await repository.fetchMemberTasks(mId);
@@ -188,6 +194,7 @@ class ViewModel {
     }
 
     // Real-time subscription management
+    // not tested yet
     subscribeToTeamTasks(teamId: number) {
         // Unsubscribe from previous team tasks
         this.unsubscribeFromChannel('team-tasks');
@@ -226,6 +233,7 @@ class ViewModel {
         this.dataSubscriptions.set('team-tasks', channel);
     }
 
+    // not tested yet
     subscribeToMemberTasks(mId: number) {
         this.unsubscribeFromChannel('member-tasks');
 
@@ -254,6 +262,7 @@ class ViewModel {
         this.dataSubscriptions.set('member-tasks', channel);
     }
 
+    // not tested yet
     private unsubscribeFromChannel(channelName: string) {
         const channel = this.dataSubscriptions.get(channelName);
         if (channel) {
@@ -264,6 +273,7 @@ class ViewModel {
 
     // Mutation methods
 
+    // teams table rls policy is problematic, only work if disabled its rls policy
     async createTeam(teamName: string) {
         try {
             this.setState('loading', true);
@@ -284,6 +294,7 @@ class ViewModel {
         }
     }
 
+    // this function is ok if disabled teams table rls policy
     async joinTeam(teamId: number, uId: string, role: string) {
         this.setState('loading', true);
         try {
@@ -302,10 +313,20 @@ class ViewModel {
         }
     }
 
-    async createTask(taskData: any) {
+    // not tested yet
+    async createTask(
+        title: string,
+        desc: string,
+        due?: number | null
+    ) {
         this.setState('loading', true);
         try {
-            const { data, error } = await repository.createTask(taskData);
+            const { data, error } = await repository.createTask(
+                this.state.currentTeam.teamId,
+                title || 'New Task',
+                desc || 'Task description',
+                due
+            );
             if (error) {
                 console.error('Error creating task:', error);
                 return { data, error };
@@ -319,6 +340,7 @@ class ViewModel {
         }
     }
 
+    // not tested yet
     async clockInOut(recordData: any) {
         try {
             const result = await repository.clockInOut(recordData);
