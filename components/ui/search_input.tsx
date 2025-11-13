@@ -3,6 +3,7 @@ import { Platform, TextInput, type TextInputProps } from 'react-native';
 
 function SearchInput({
   className,
+  style,
   placeholderClassName,
   ...props
 }: TextInputProps & React.RefAttributes<TextInput>) {

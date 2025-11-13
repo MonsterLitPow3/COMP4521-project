@@ -1,154 +1,110 @@
-import { View, Text, Button } from 'react-native';
-import { Input } from '@/components/ui/input';
-import { SearchInput } from '@/components/ui/search_input';
-import AntDesign from '@expo/vector-icons/AntDesign';
+import React from 'react';
+import { View, Text, ScrollView } from 'react-native';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ProgressRed } from '@/components/ui/progress(RED)';
-import { Progress } from '@/components/ui/progress';
-import { ScrollView } from 'react-native';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import * as React from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
-import { Stack, useRouter } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import data from 'data.json';
 
-export default function DashBoard() {
-  const [progress, setProgress] = React.useState(13);
-  const router = useRouter();
+type SubTask = {
+  sTName: string;
+  sTddlDate: string;
+  sTddlTime: string;
+  Descriptions: string;
+  sTStatus: number;
+  Member: Record<string, string | boolean>;
+  sTDocs: Record<string, string>;
+};
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setProgress(99), 500);
-    return () => clearTimeout(timer);
-  }, []);
+type TaskType = {
+  taskName: string;
+  ddlDate: string;
+  ddlTime: string;
+  taskStatus: number;
+  progress: number;
+  subTasks: SubTask[];
+};
+
+export default function ProgressDetail() {
+  const { count_key } = useLocalSearchParams();
+  function getNumericParam(val: string | string[] | undefined): number {
+    if (Array.isArray(val)) return parseInt(val[0], 10);
+    if (typeof val === 'string') return parseInt(val, 10);
+    return 0;
+  }
+  const idx = getNumericParam(count_key);
+
+  // Fallback to 0 if not provided
+  const task: TaskType | undefined = data[idx] || data[0];
+
+  if (!task) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Text>No task found</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView>
-      <View className="mb-10">
-        <View className="mb-1.5 mt-5 items-center justify-center">
-          <Text className="text-3xl">Sub-Tasks-One</Text>
-        </View>
-
-        {/* <View className="mb-7 ml-2 mr-6 mt-3 flex-row items-center justify-center">
-          <SearchInput />
-          <Ionicons name="search-outline" size={24} color="black" className="ml-7 mt-1" />
-        </View> */}
-
-        <View className="mb-5 mt-5 w-max items-center justify-center">
+      <View
+        className="flex w-max items-center justify-center"
+        style={{ marginBottom: 40, marginTop: 20 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+          {task.taskName} - SubTasks
+        </Text>
+        {task.subTasks.map((subTask: SubTask, j: number) => (
           <Card
-            className="w-80 flex-col bg-slate-100 shadow-inherit"
-            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl text-gray-500">Sub-Task 1</CardTitle>
-                <CardDescription className="text-xs text-gray-400">Members:</CardDescription>
-                <CardDescription className="-mt-3 text-gray-400">
-                  xxxx, xxxxx, xxxxxxxxx
-                </CardDescription>
+            key={j}
+            className={`mb-10 w-80 flex-col ${
+              subTask.sTStatus === 2 ? 'bg-gray-100' : 'bg-white'
+            } shadow-inherit`}
+            onTouchStart={() =>
+              router.push({
+                pathname: '/Dashboard/ProgressFinalDetail',
+              })
+            }>
+            <CardHeader className="-ml-5 flex w-full flex-row items-center">
+              <View className="ml-5 min-w-0 flex-1">
+                <CardTitle className="mt-0.5 text-xl text-gray-500">{subTask.sTName}</CardTitle>
+                <CardDescription className="text-sm text-gray-400">Members:</CardDescription>
+                {Object.values(subTask.Member)
+                  .filter(Boolean)
+                  .map((member, idx, arr) => (
+                    <CardDescription key={idx} className="-mt-1 text-xs text-gray-400">
+                      {member}
+                      {idx < arr.length - 1 ? ', ' : ''}
+                    </CardDescription>
+                  ))}
                 <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5 text-gray-400">
-                  XXXXXXXXXXXXXXXXXXX
+                <CardDescription className="text-xs text-gray-400">
+                  {subTask.Descriptions}
                 </CardDescription>
-                <CardDescription className="-mt-2.5 text-gray-400">
-                  XXXXXXXXXXXXXXXXXXX
-                </CardDescription>
-              </CardHeader>
+              </View>
               <CardContent>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={55}
-                  color="lightgreen"
-                  className="-ml-5"
-                />
+                {subTask.sTStatus === 2 && (
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={80}
+                    color="lightgreen"
+                    className="-mr-8 -mt-20"
+                  />
+                )}
+                {subTask.sTStatus === 0 && (
+                  <EvilIcons name="play" size={80} className="-mr-8 -mt-10" color="black" />
+                )}
+                {subTask.sTStatus === 1 && (
+                  <EvilIcons name="exclamation" size={80} color="red" className="-mr-8 -mt-20" />
+                )}
               </CardContent>
             </CardHeader>
             <View className="mr-3 flex-1 items-end justify-end">
               <CardDescription className="flex-1 items-end justify-end text-gray-400">
-                Deadline: DD/MM/YYYY HH/MM
+                Deadline: {subTask.sTddlDate} {subTask.sTddlTime}
               </CardDescription>
             </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
           </Card>
-        </View>
-
-        <View className="mb-5 w-max items-center justify-center">
-          <Card
-            className="w-80 flex-col"
-            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl">Sub-Task 2</CardTitle>
-                <CardDescription className="text-xs">Members:</CardDescription>
-                <CardDescription className="-mt-3">xxxx, xxxxx, xxxxxxxxx</CardDescription>
-                <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="play" size={60} color="black" className="-ml-5" />
-              </CardContent>
-            </CardHeader>
-            <View className="mr-3 flex-1 items-end justify-end">
-              <CardDescription className="flex-1 items-end justify-end">
-                Deadline: DD/MM/YYYY HH/MM
-              </CardDescription>
-            </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
-          </Card>
-        </View>
-
-        <View className="mb-5 w-max items-center justify-center">
-          <Card
-            className="w-80 flex-col"
-            onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl">Sub-Task 3</CardTitle>
-                <CardDescription className="text-xs">Members:</CardDescription>
-                <CardDescription className="-mt-3">xxxx, xxxxx, xxxxxxxxx</CardDescription>
-                <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="exclamation" size={60} color="red" className="-ml-5" />
-              </CardContent>
-            </CardHeader>
-            <View className="mr-3 flex-1 items-end justify-end">
-              <CardDescription className="flex-1 items-end justify-end">
-                Deadline: DD/MM/YYYY HH/MM
-              </CardDescription>
-            </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
-          </Card>
-        </View>
+        ))}
       </View>
     </ScrollView>
   );

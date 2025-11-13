@@ -67,13 +67,22 @@ export default function RootLayout() {
             headerStyle: {
               backgroundColor: '#292D32',
             },
-            headerTintColor: '#fff',
+            // headerRight: '#ffffff',
+            headerTintColor: '#ffffff',
+
             headerTitleStyle: {
               fontWeight: 'bold',
             },
 
             headerRight: () => (
-              <View className="mb-5 mr-3 mt-5 flex-row">
+              <View
+                style={{
+                  marginBottom: 20,
+                  marginRight: 12,
+                  marginTop: 20,
+                  flexDirection: 'row',
+                  backgroundColor: 'transparent',
+                }}>
                 <View className="mr-2 h-7 w-7 rounded-sm bg-white">
                   <MaterialCommunityIcons
                     onPress={() => router.push('/Dashboard/index_2')}
@@ -97,7 +106,7 @@ export default function RootLayout() {
             ),
 
             headerLeft: () => (
-              <View className="bg-#292D32 ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
+              <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
                 <MaterialCommunityIcons
                   onPress={() => router.push('/')}
                   name="arrow-u-left-top"

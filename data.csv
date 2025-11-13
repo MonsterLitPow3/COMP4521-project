@@ -1,0 +1,6 @@
+taskName,ddlDate,ddlTime,taskStatus,progress,taskId,teamId
+Taks 1,YYYY/MM/DD,HH/MM/SS,1,50,1,12
+Taks 2,YYYY/MM/DD,HH/MM/SS,2,10,2,13
+Taks 3,YYYY/MM/DD,HH/MM/SS,1,90,3,14
+Taks 4,YYYY/MM/DD,HH/MM/SS,0,70,4,15
+Taks 5,YYYY/MM/DD,HH/MM/SS,2,10,5,16
