@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { supabase } from '@/utils/supabase';
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
