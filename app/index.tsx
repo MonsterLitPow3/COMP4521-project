@@ -32,6 +32,18 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export default function Screen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
@@ -113,6 +125,32 @@ export default function Screen() {
     } finally {
       setLoading(false);}
   };
+
+  // notification setup
+  const [expoPushToken, setExpoPushToken] = React.useState('');
+  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
+    undefined
+  );
+
+  React.useEffect(() => {
+    registerForPushNotificationsAsync()
+      .then(token => setExpoPushToken(token ?? ''))
+      .catch((error: any) => setExpoPushToken(`${error}`));
+
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      setNotification(notification);
+    });
+
+    // when user interacts with notification (tap, etc.)
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log(response);
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
 
   if (!session) {
     return (

@@ -35,6 +35,12 @@ export default function RootLayout() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
           name="settings/index"
           options={{
             headerShown: true,
@@ -50,12 +56,6 @@ export default function RootLayout() {
               />
             ),
             // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
           }}
         />
         <Stack.Screen
