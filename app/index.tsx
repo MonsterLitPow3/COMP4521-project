@@ -76,7 +76,7 @@ export default function Screen() {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signUp({email, password});
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMessage(error.message);
       } else {
@@ -99,9 +99,23 @@ export default function Screen() {
       if (error) {
         setMessage(error.message);
       } else {
-        setMessage('Signed in successfully');
+        console.log('Signed in successfully');
         setEmail('');
         setPassword('');
+      }
+
+      // upsert push token after sign-in
+      if (data.session) {
+        console.log('Upserting push token after sign-in...');
+        const { data: upsertData, error } = await supabase
+          .from('profiles')
+          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
+          .select();
+        if (error) {
+          console.log('Error upserting push token after sign-in:', error.message);
+        } else {
+          console.log('Push token upserted successfully after sign-in:', upsertData);
+        }
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -123,7 +137,8 @@ export default function Screen() {
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
     } finally {
-      setLoading(false);}
+      setLoading(false);
+    }
   };
 
   // notification setup
