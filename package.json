@@ -23,9 +23,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "^54.0.0",
-    "expo-constants": "~18.0.9",
-    "expo-dev-client": "~6.0.15",
+    "expo-constants": "~18.0.10",
+    "expo-dev-client": "~6.0.18",
+    "expo-device": "~8.0.9",
     "expo-linking": "~8.0.8",
+    "expo-notifications": "~0.32.13",
     "expo-router": "~6.0.10",
     "expo-splash-screen": "~31.0.10",
     "expo-sqlite": "~16.0.9",
@@ -51,6 +53,7 @@
     "@types/react": "~19.1.10",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
+    "supabase": "^2.62.5",
     "typescript": "~5.9.2"
   },
   "private": true
