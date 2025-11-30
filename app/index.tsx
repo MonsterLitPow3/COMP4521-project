@@ -167,6 +167,121 @@ export default function Screen() {
     };
   }, []);
 
+  // passwordless (OTP) sign-in, for users who forgot password
+  const [passwordLess, setPasswordLess] = React.useState(false);
+  const [otp, setOtp] = React.useState('');
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({ email });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage('One time password sent to your email. Check your inbox.');
+        setPassword('');
+        setPasswordLess(true);
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleSignInWithOtp = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        console.log('Signed in successfully with OTP');
+        setEmail('');
+        setOtp('');
+        setPasswordLess(false);
+      }
+
+      // upsert push token after sign-in
+      if (data.session) {
+        console.log('Upserting push token after sign-in...');
+        const { data: upsertData, error } = await supabase
+          .from('profiles')
+          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
+          .select();
+        if (error) {
+          console.log('Error upserting push token after sign-in:', error.message);
+        } else {
+          console.log('Push token upserted successfully after sign-in:', upsertData);
+        }
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // after clicking signin with otp, show otp form
+  if (!session && passwordLess) {
+    return (
+      <>
+        <Stack.Screen options={SCREEN_OPTIONS} />
+        <View className="flex-1 items-center justify-center p-4">
+          <Image
+            source={LOGO[colorScheme ?? 'light']}
+            style={IMAGE_STYLE}
+            resizeMode="contain"
+          />
+
+          <View className="gap-4 p-4 w-full max-w-xs mt-8">
+            <Text className="text-xl font-bold text-center mb-4">
+              Sign In to Your Account
+            </Text>
+
+            <Text className="text-sm text-muted-foreground">Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+            />
+
+            <Text className="text-sm text-muted-foreground">One Time Password</Text>
+            <TextInput
+              value={otp}
+              onChangeText={setOtp}
+              placeholder="123456"
+              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+            />
+
+            <View className="flex-row gap-2">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onPress={handleSignInWithOtp}
+                className="flex-1"
+              >
+                <Text>{loading ? 'Please wait...' : 'Sign In With OTP'}</Text>
+              </Button>
+            </View>
+
+            {message ? (
+              <Text className="text-sm text-foreground text-center mt-2">
+                {message}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </>
+    );
+  }
+  // email password sign-in/sign-up form
   if (!session) {
     return (
       <>
@@ -219,6 +334,17 @@ export default function Screen() {
                 <Text>{loading ? 'Please wait...' : 'Sign In'}</Text>
               </Button>
             </View>
+            <View className="flex-row gap-2">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onPress={handleForgotPassword}
+                className="flex-1"
+              >
+                <Text>{loading ? 'Please wait...' : 'Send OTP to email'}</Text>
+              </Button>
+            </View>
+
 
             {message ? (
               <Text className="text-sm text-foreground text-center mt-2">
@@ -230,6 +356,7 @@ export default function Screen() {
       </>
     );
   }
+  // after sign-in
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
