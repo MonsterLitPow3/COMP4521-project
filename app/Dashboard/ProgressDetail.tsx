@@ -1,155 +1,268 @@
-import { View, Text, Button } from 'react-native';
-import { Input } from '@/components/ui/input';
-import { SearchInput } from '@/components/ui/search_input';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { ProgressRed } from '@/components/ui/progress(RED)';
-import { Progress } from '@/components/ui/progress';
-import { ScrollView } from 'react-native';
+// app/Dashboard/ProgressDetail.tsx
+import React, { useState, useCallback } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import * as React from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import EvilIcons from '@expo/vector-icons/EvilIcons';
-import { Stack, useRouter } from 'expo-router';
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
+import { Card, CardContent } from '@/components/ui/card';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { supabase } from '@/utils/supabase';
 
-export default function DashBoard() {
-  const [progress, setProgress] = React.useState(13);
+type SubTaskType = {
+  pId: number;
+  subTaskID: number;
+  sTName: string;
+  sTddlDate: string;
+  sTddlTime: string;
+  Descriptions: string;
+  sTStatus: number;
+  Member?: any; // stored as JSON array in DB
+  sTComments: string | null;
+};
+
+export default function ProgressDetail() {
+  const { taskID, canEdit } = useLocalSearchParams<{ taskID: string; canEdit?: string }>();
   const router = useRouter();
+  const [subTasks, setSubTasks] = useState<SubTaskType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setProgress(99), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const fetchSubTasks = useCallback(async () => {
+    setErrorMsg('');
+    try {
+      if (!taskID) {
+        setErrorMsg('No Task ID found.');
+        return;
+      }
+      const numericTaskId = Number(taskID);
+      const { data, error } = await supabase.from('subTasks').select('*').eq('pId', numericTaskId);
+
+      if (error) {
+        setErrorMsg(`Supabase Error: ${error.message}`);
+        setSubTasks([]);
+      } else {
+        setSubTasks((data ?? []) as SubTaskType[]);
+      }
+    } catch (e: any) {
+      setErrorMsg(`Unknown Error: ${e?.message || String(e)}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [taskID]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchSubTasks();
+    }, [fetchSubTasks])
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color="#000" />
+        <Text>Loading SubTasks...</Text>
+      </View>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <View style={styles.centeredContainer}>
+        <Text style={{ color: 'red', fontWeight: 'bold' }}>{errorMsg}</Text>
+      </View>
+    );
+  }
+
+  const anyUnfinished = subTasks.some((st) => st.sTStatus !== 2);
+  const canShowEditButton = canEdit === 'true' && anyUnfinished;
 
   return (
-    <ScrollView>
-      <View className="mb-10">
-        <View className="mb-1.5 mt-5 items-center justify-center">
-          <Text className="text-3xl">Sub-Tasks-One</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 80 }}>
+        <Text style={styles.header}>SubTasks</Text>
+
+        {subTasks.length === 0 ? (
+          <Text style={styles.emptyText}>No subtasks for this task yet.</Text>
+        ) : (
+          subTasks.map((subTask, idx) => {
+            const isFinished = subTask.sTStatus === 2;
+            const cardOpacity = isFinished ? 0.4 : 1;
+
+            // short snippet of description
+            const maxDescLen = 60;
+            const fullDesc = subTask.Descriptions || '';
+            const shortDesc =
+              fullDesc.length > maxDescLen
+                ? fullDesc.slice(0, maxDescLen).trimEnd() + '…'
+                : fullDesc;
+
+            // parse members JSON array
+            let members: string[] = [];
+            try {
+              if (subTask.Member) {
+                if (Array.isArray(subTask.Member)) {
+                  members = subTask.Member.map((m) => String(m));
+                } else if (typeof subTask.Member === 'string') {
+                  const parsed = JSON.parse(subTask.Member);
+                  if (Array.isArray(parsed)) members = parsed.map((m) => String(m));
+                }
+              }
+            } catch {
+              // ignore parse errors, keep members empty
+            }
+
+            return (
+              <TouchableOpacity
+                key={subTask.subTaskID}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: '/Dashboard/ProgressFinalDetail',
+                    params: {
+                      taskID: String(taskID),
+                      subTaskID: String(subTask.subTaskID),
+                    },
+                  })
+                }>
+                <Card
+                  style={[
+                    styles.subTaskCard,
+                    isFinished && styles.subTaskCardFinished,
+                    { opacity: cardOpacity },
+                  ]}>
+                  <CardContent>
+                    <Text style={styles.subTaskTitle}>
+                      {idx + 1}. {subTask.sTName}
+                    </Text>
+                    <Text style={styles.subTaskDesc}>{shortDesc}</Text>
+
+                    {/* Members panel */}
+                    <Text style={[styles.subTaskInfo, { marginTop: 4, fontWeight: '600' }]}>
+                      Members:
+                    </Text>
+                    {members.length === 0 ? (
+                      <Text style={styles.subTaskInfo}>No members assigned.</Text>
+                    ) : (
+                      <Text style={styles.subTaskInfo}>{members.join(', ')}</Text>
+                    )}
+
+                    <Text style={[styles.subTaskInfo, { marginTop: 4 }]}>
+                      Deadline: {subTask.sTddlDate} {subTask.sTddlTime}
+                    </Text>
+                    <Text style={styles.subTaskInfo}>
+                      Status:{' '}
+                      {subTask.sTStatus === 0
+                        ? 'On-Going'
+                        : subTask.sTStatus === 1
+                          ? 'Not-finished'
+                          : subTask.sTStatus === 2
+                            ? 'Finished'
+                            : 'Unknown'}
+                    </Text>
+                    {/* <Text style={styles.subTaskInfo}>SubTask ID: {subTask.subTaskID}</Text> */}
+                  </CardContent>
+                </Card>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
+
+      {canShowEditButton && (
+        <View style={styles.editButtonContainer}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => {
+              if (!taskID) return;
+              router.push({
+                pathname: '/Dashboard/editPage',
+                params: { taskID: String(taskID) },
+              });
+            }}>
+            <Text style={styles.editButtonText}>Edit Task</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* <View className="mb-7 ml-2 mr-6 mt-3 flex-row items-center justify-center">
-          <SearchInput />
-          <Ionicons name="search-outline" size={24} color="black" className="ml-7 mt-1" />
-        </View> */}
-
-        <View
-          className="mb-5 mt-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col bg-slate-100 shadow-inherit">
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl text-gray-500">Sub-Task 1</CardTitle>
-                <CardDescription className="text-xs text-gray-400">Members:</CardDescription>
-                <CardDescription className="-mt-3 text-gray-400">
-                  xxxx, xxxxx, xxxxxxxxx
-                </CardDescription>
-                <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5 text-gray-400">
-                  XXXXXXXXXXXXXXXXXXX
-                </CardDescription>
-                <CardDescription className="-mt-2.5 text-gray-400">
-                  XXXXXXXXXXXXXXXXXXX
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={55}
-                  color="lightgreen"
-                  className="-ml-5"
-                />
-              </CardContent>
-            </CardHeader>
-            <View className="mr-3 flex-1 items-end justify-end">
-              <CardDescription className="flex-1 items-end justify-end text-gray-400">
-                Deadline: DD/MM/YYYY HH/MM
-              </CardDescription>
-            </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl">Sub-Task 2</CardTitle>
-                <CardDescription className="text-xs">Members:</CardDescription>
-                <CardDescription className="-mt-3">xxxx, xxxxx, xxxxxxxxx</CardDescription>
-                <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="play" size={60} color="black" className="-ml-5" />
-              </CardContent>
-            </CardHeader>
-            <View className="mr-3 flex-1 items-end justify-end">
-              <CardDescription className="flex-1 items-end justify-end">
-                Deadline: DD/MM/YYYY HH/MM
-              </CardDescription>
-            </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 w-max items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressFinalDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="-ml-5 w-max flex-row">
-              <CardHeader>
-                <CardTitle className="mt-0.5 text-xl">Sub-Task 3</CardTitle>
-                <CardDescription className="text-xs">Members:</CardDescription>
-                <CardDescription className="-mt-3">xxxx, xxxxx, xxxxxxxxx</CardDescription>
-                <CardDescription>Descriptions:</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-                <CardDescription className="-mt-2.5">XXXXXXXXXXXXXXXXXXX</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="exclamation" size={60} color="red" className="-ml-5" />
-              </CardContent>
-            </CardHeader>
-            <View className="mr-3 flex-1 items-end justify-end">
-              <CardDescription className="flex-1 items-end justify-end">
-                Deadline: DD/MM/YYYY HH/MM
-              </CardDescription>
-            </View>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            {/* <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View> */}
-          </Card>
-        </View>
-      </View>
-    </ScrollView>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContainer: { flex: 1, padding: 18, backgroundColor: '#fafafa' },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 38,
+    backgroundColor: '#fafafa',
+  },
+  header: {
+    fontWeight: 'bold',
+    fontSize: 26,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 17,
+    color: '#555',
+    marginTop: 32,
+    textAlign: 'center',
+  },
+  subTaskCard: {
+    backgroundColor: '#f3f3f3',
+    borderRadius: 13,
+    padding: 15,
+    marginBottom: 18,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  subTaskCardFinished: {
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+  },
+  subTaskTitle: {
+    fontWeight: 'bold',
+    fontSize: 21,
+    marginBottom: 3,
+  },
+  subTaskDesc: {
+    color: '#454545',
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  subTaskInfo: {
+    fontSize: 15,
+    marginBottom: 3,
+    color: '#888',
+  },
+  editButtonContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  editButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});

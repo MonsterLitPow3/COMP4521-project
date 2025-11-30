@@ -245,7 +245,7 @@ export default function Screen() {
         </Button>
         <Card>
           <CardHeader>
-            <CardTitle>Card Title</CardTitle>
+            <CardTitle>Card Testing SFESFDESF</CardTitle>
             <CardDescription>Card Description</CardDescription>
           </CardHeader>
           <CardContent>

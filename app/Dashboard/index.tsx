@@ -1,184 +1,215 @@
-import { View, Text, Button } from 'react-native';
-import { Input } from '@/components/ui/input';
-import { SearchInput } from '@/components/ui/search_input';
-import AntDesign from '@expo/vector-icons/AntDesign';
+// app/Dashboard/index.tsx
+import React, { useCallback, useRef, useState } from 'react';
+import { View, StyleSheet, Platform, FlatList, TouchableOpacity, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import EvilIcons from '@expo/vector-icons/EvilIcons';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { ProgressRed } from '@/components/ui/progress(RED)';
 import { Progress } from '@/components/ui/progress';
-import { ScrollView } from 'react-native';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import * as React from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import EvilIcons from '@expo/vector-icons/EvilIcons';
-import { Stack, useRouter } from 'expo-router';
+import { supabase } from '@/utils/supabase';
+import { SearchInput } from '@/components/ui/search_input';
+
+type TaskType = {
+  taskID: number;
+  taskName: string;
+  ddlDate: string;
+  ddlTime: string;
+  taskStatus: number; // 0,1,2
+  progress: number;
+};
+
+function getDeadline(ddlDate: string, ddlTime: string) {
+  const iso = ddlDate.replace(/\//g, '-') + 'T' + ddlTime;
+  return new Date(iso);
+}
 
 export default function DashBoard() {
-  const [progress, setProgress] = React.useState(13);
+  const [tasks, setTasks] = useState<TaskType[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
   const router = useRouter();
+  const isFetchingRef = useRef(false);
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setProgress(99), 500);
-    return () => clearTimeout(timer);
+  const fetchTasks = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    try {
+      const { data, error } = await supabase.from('Tasks').select('*');
+      if (error) {
+        console.error('Cannot receive data from supabase.', error);
+        return;
+      }
+      const now = new Date();
+      const active = (data ?? []).filter((raw: any) => {
+        const progress = typeof raw.progress === 'number' ? raw.progress : 0;
+        // finished by progress => move to history
+        if (progress >= 100) return false;
+        const deadline = getDeadline(raw.ddlDate, raw.ddlTime);
+        // past due => history
+        if (deadline < now) return false;
+        // only 0 or 1 are active states
+        return raw.taskStatus === 0 || raw.taskStatus === 1;
+      });
+      setTasks(
+        active.map((t: any) => ({
+          taskID: t.taskID,
+          taskName: t.taskName,
+          ddlDate: t.ddlDate,
+          ddlTime: t.ddlTime,
+          taskStatus: t.taskStatus,
+          progress: typeof t.progress === 'number' ? t.progress : 0,
+        }))
+      );
+    } finally {
+      isFetchingRef.current = false;
+      setInitialLoading(false);
+    }
   }, []);
 
-  return (
-    <ScrollView>
-      <View className="mb-10">
-        <View className="mb-1.5 mt-5 items-center justify-center">
-          <Text className="text-3xl">Tasks</Text>
-        </View>
+  useFocusEffect(
+    useCallback(() => {
+      fetchTasks();
+    }, [fetchTasks])
+  );
 
-        <View className="mb-7 ml-2 mr-6 mt-3 flex-row items-center justify-center">
-          <SearchInput />
-          <Ionicons name="search-outline" size={24} color="black" className="ml-7 mt-1" />
-        </View>
+  const filteredTasks =
+    searchText.trim() === ''
+      ? tasks
+      : tasks.filter((task) => task.taskName.toLowerCase().includes(searchText.toLowerCase()));
 
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-xl">Task 1</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="play" size={60} color="black" className="" />
-              </CardContent>
-            </CardHeader>
-
-            {/* <View className="ml-8 flex h-1.5 w-64 items-center justify-center rounded-full bg-gray-400 align-middle" /> */}
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[70%]" />
-              </Text>
-            </View>
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-lg">Task 2</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="exclamation" size={60} color="red" className="" />
-              </CardContent>
-            </CardHeader>
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <ProgressRed value={progress} className="h-1.5 w-64 color-red-400 md:w-[30%]" />
-              </Text>
-            </View>
-            {/* <Progress value={33} max={100} /> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-lg">Task 3</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="exclamation" size={60} color="red" className="" />
-              </CardContent>
-            </CardHeader>
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <ProgressRed value={progress} className="h-1.5 w-64 color-red-400 md:w-[50%]" />
-              </Text>
-            </View>
-            {/* <Progress value={33} max={100} /> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-xl">Task 4</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="play" size={60} color="black" className="" />
-              </CardContent>
-            </CardHeader>
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[0%]" />
-              </Text>
-            </View>
-            {/* <Progress /> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-xl">Task 5</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="play" size={60} color="black" className="" />
-              </CardContent>
-            </CardHeader>
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <Progress value={progress} className="h-1.5 w-64 color-red-400 md:w-[90%]" />
-              </Text>
-            </View>
-            {/* <Progress /> */}
-          </Card>
-        </View>
-
-        <View
-          className="mb-5 flex items-center justify-center"
-          onTouchStart={() => router.push('/Dashboard/ProgressDetail')}>
-          <Card className="w-80 flex-col">
-            <CardHeader className="flex-row">
-              <CardHeader>
-                <CardTitle className="text-lg">Task 6</CardTitle>
-                <CardDescription>00/00/0000 00:00:00</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EvilIcons name="exclamation" size={60} color="red" className="" />
-              </CardContent>
-            </CardHeader>
-
-            <View className="w-max items-center justify-center">
-              <Text className="h-max w-max flex-1 items-center justify-center">
-                <ProgressRed value={progress} className="h-1.5 w-64 color-red-400 md:w-[60%]" />
-              </Text>
-            </View>
-            {/* <Progress value={33} max={100} /> */}
-          </Card>
-        </View>
+  if (initialLoading) {
+    return (
+      <View style={[styles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text>Loading tasks...</Text>
       </View>
-    </ScrollView>
+    );
+  }
+
+  return (
+    <FlatList
+      data={filteredTasks}
+      keyExtractor={(item) => item.taskID.toString()}
+      contentContainerStyle={styles.container}
+      ListHeaderComponent={
+        <View>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>Dashboard</Text>
+          </View>
+          <View style={styles.searchRow}>
+            <SearchInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search tasks"
+              style={styles.searchInput}
+            />
+            <Ionicons name="search-outline" size={24} color="black" style={styles.searchIcon} />
+          </View>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <View style={styles.cardTouchable}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: '/Dashboard/ProgressDetail',
+                params: { taskID: String(item.taskID), canEdit: 'true' },
+              })
+            }>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardTitleWrap}>
+                <CardTitle className="pl-5" style={styles.cardTitle}>
+                  {item.taskName}
+                </CardTitle>
+                <CardDescription className="pl-5" style={styles.cardDescription}>
+                  {item.ddlDate} {item.ddlTime}
+                </CardDescription>
+              </View>
+              <View style={styles.cardIconWrap}>
+                {item.taskStatus === 0 && <EvilIcons name="play" size={60} color="black" />}
+                {item.taskStatus === 1 && <EvilIcons name="exclamation" size={60} color="red" />}
+              </View>
+            </View>
+            <View style={styles.progressWrap}>
+              {item.taskStatus === 1 ? (
+                <ProgressRed value={item.progress} style={styles.progressBarRed} />
+              ) : (
+                <Progress value={item.progress} style={styles.progressBar} />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+      scrollEventThrottle={16}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  container: { paddingVertical: 14, paddingHorizontal: 10, flexGrow: 1 },
+  headerRow: { alignItems: 'center', marginTop: 10, marginBottom: 6 },
+  headerTitle: { fontSize: 26, fontWeight: 'bold' },
+  searchRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    marginLeft: 20,
+    marginRight: 22,
+    marginTop: 15,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    borderColor: '#d7d4d4ff',
+    borderWidth: 1,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    color: 'black',
+    paddingLeft: 20,
+    paddingRight: 10,
+    paddingVertical: 10,
+    fontSize: 18,
+    textAlignVertical: 'center',
+    marginTop: 2,
+  },
+  searchIcon: { marginLeft: 12, marginTop: 2 },
+  cardTouchable: { marginBottom: 18, alignItems: 'center', justifyContent: 'center' },
+  card: {
+    width: Platform.OS === 'ios' ? 330 : 320,
+    padding: 18,
+    alignSelf: 'center',
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  cardTitleWrap: { flex: 1, justifyContent: 'center' },
+  cardTitle: { marginTop: 5, fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
+  cardDescription: { color: '#666', marginBottom: -10 },
+  cardIconWrap: { alignItems: 'center', justifyContent: 'center', marginLeft: 10, marginTop: 7 },
+  progressWrap: { marginTop: 10, marginBottom: 5, alignItems: 'center', width: '100%' },
+  progressBar: {
+    height: 6,
+    width: Platform.OS === 'ios' ? 290 : 260,
+    borderRadius: 4,
+    backgroundColor: '#c3c3c3ff',
+  },
+  progressBarRed: {
+    height: 6,
+    width: Platform.OS === 'ios' ? 290 : 260,
+    borderRadius: 4,
+    backgroundColor: '#c3c3c3ff',
+  },
+});
