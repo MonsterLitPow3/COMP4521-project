@@ -1,5 +1,5 @@
 // app/Dashboard/index.tsx
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, Platform, FlatList, TouchableOpacity, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
@@ -15,8 +15,9 @@ type TaskType = {
   taskName: string;
   ddlDate: string;
   ddlTime: string;
-  taskStatus: number; // 0,1,2
+  taskStatus: number;
   progress: number;
+  subTasks: any[];
 };
 
 function getDeadline(ddlDate: string, ddlTime: string) {
@@ -27,64 +28,40 @@ function getDeadline(ddlDate: string, ddlTime: string) {
 export default function DashBoard() {
   const [tasks, setTasks] = useState<TaskType[]>([]);
   const [searchText, setSearchText] = useState('');
-  const [initialLoading, setInitialLoading] = useState(true);
   const router = useRouter();
-  const isFetchingRef = useRef(false);
 
-  const fetchTasks = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    try {
-      const { data, error } = await supabase.from('Tasks').select('*');
-      if (error) {
-        console.error('Cannot receive data from supabase.', error);
-        return;
-      }
-      const now = new Date();
-      const active = (data ?? []).filter((raw: any) => {
-        const progress = typeof raw.progress === 'number' ? raw.progress : 0;
-        // finished by progress => move to history
-        if (progress >= 100) return false;
-        const deadline = getDeadline(raw.ddlDate, raw.ddlTime);
-        // past due => history
-        if (deadline < now) return false;
-        // only 0 or 1 are active states
-        return raw.taskStatus === 0 || raw.taskStatus === 1;
-      });
-      setTasks(
-        active.map((t: any) => ({
-          taskID: t.taskID,
-          taskName: t.taskName,
-          ddlDate: t.ddlDate,
-          ddlTime: t.ddlTime,
-          taskStatus: t.taskStatus,
-          progress: typeof t.progress === 'number' ? t.progress : 0,
-        }))
-      );
-    } finally {
-      isFetchingRef.current = false;
-      setInitialLoading(false);
+  const handleReceive = useCallback(async () => {
+    const { data, error } = await supabase.from('Tasks').select('*');
+    if (error) {
+      console.error('Cannot receive data from supabase.', error);
+      return;
     }
+    const now = new Date();
+    const nonFinished = (data ?? []).filter((task: TaskType) => {
+      // status 2 = finished -> never show on index
+      if (task.taskStatus === 2) return false;
+      const deadline = getDeadline(task.ddlDate, task.ddlTime);
+      return deadline >= now;
+    });
+    setTasks(
+      nonFinished.map((t: any) => ({
+        ...t,
+        progress: typeof t.progress === 'number' ? t.progress : 0,
+      }))
+    );
   }, []);
 
+  // Refetch whenever this screen gains focus
   useFocusEffect(
     useCallback(() => {
-      fetchTasks();
-    }, [fetchTasks])
+      handleReceive();
+    }, [handleReceive])
   );
 
   const filteredTasks =
     searchText.trim() === ''
       ? tasks
       : tasks.filter((task) => task.taskName.toLowerCase().includes(searchText.toLowerCase()));
-
-  if (initialLoading) {
-    return (
-      <View style={[styles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text>Loading tasks...</Text>
-      </View>
-    );
-  }
 
   return (
     <FlatList
@@ -112,12 +89,15 @@ export default function DashBoard() {
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.card}
-            onPress={() =>
+            onPress={() => {
               router.push({
                 pathname: '/Dashboard/ProgressDetail',
-                params: { taskID: String(item.taskID), canEdit: 'true' },
-              })
-            }>
+                params: {
+                  taskID: String(item.taskID),
+                  canEdit: 'true',
+                },
+              });
+            }}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.cardTitleWrap}>
                 <CardTitle className="pl-5" style={styles.cardTitle}>
@@ -130,6 +110,7 @@ export default function DashBoard() {
               <View style={styles.cardIconWrap}>
                 {item.taskStatus === 0 && <EvilIcons name="play" size={60} color="black" />}
                 {item.taskStatus === 1 && <EvilIcons name="exclamation" size={60} color="red" />}
+                {item.taskStatus === 2 && <EvilIcons name="check" size={60} color="green" />}
               </View>
             </View>
             <View style={styles.progressWrap}>
@@ -182,12 +163,12 @@ const styles = StyleSheet.create({
     padding: 18,
     alignSelf: 'center',
     borderRadius: 14,
-    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 3,
+    backgroundColor: '#fff',
   },
   cardHeaderRow: {
     flexDirection: 'row',

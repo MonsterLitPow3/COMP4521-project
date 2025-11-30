@@ -1,3 +1,122 @@
+// // app/index.tsx
+// import { Button } from '@/components/ui/button';
+// import { Icon } from '@/components/ui/icon';
+// import { Text } from '@/components/ui/text';
+// import { Link, Stack, useRouter } from 'expo-router';
+// import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
+// import { useColorScheme } from 'nativewind';
+// import * as React from 'react';
+// import { Image, type ImageStyle, View } from 'react-native';
+// import {
+//   Card,
+//   CardContent,
+//   CardDescription,
+//   CardFooter,
+//   CardHeader,
+//   CardTitle,
+// } from '@/components/ui/card';
+// import { supabase } from '@/utils/supabase';
+
+// const LOGO = {
+//   light: require('@/assets/images/react-native-reusables-light.png'),
+//   dark: require('@/assets/images/react-native-reusables-dark.png'),
+// };
+
+// const SCREEN_OPTIONS = {
+//   title: 'React Native Reusables',
+//   headerTransparent: true,
+//   headerRight: () => <ThemeToggle />,
+// };
+
+// const IMAGE_STYLE: ImageStyle = {
+//   height: 76,
+//   width: 76,
+// };
+
+// export default function Screen() {
+//   const { colorScheme } = useColorScheme();
+//   const router = useRouter();
+
+//   return (
+//     <>
+//       <Stack.Screen options={SCREEN_OPTIONS} />
+//       <View className="flex-1 items-center justify-center gap-8 p-4">
+//         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
+//         <Card>
+//           <CardHeader>
+//             <CardTitle>Card Title</CardTitle>
+//             <CardDescription>Card Description</CardDescription>
+//           </CardHeader>
+//           <CardContent>
+//             <Text>Card Content</Text>
+//           </CardContent>
+//           <CardFooter className="flex-col gap-2">
+//             <Button className="w-full">
+//               <Text>Subscribe</Text>
+//             </Button>
+//             <Button variant="outline" className="w-full bg-red-300">
+//               <Text>Later</Text>
+//             </Button>
+//           </CardFooter>
+//         </Card>
+//         <View className="gap-2 p-4">
+//           <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
+//             1. Edit <Text variant="code">app/index.tsx</Text> to get started.
+//           </Text>
+//           <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
+//             2. Save to see your changes instantly.
+//           </Text>
+//         </View>
+//         <View className="flex-col gap-2">
+//           <Link href="https://reactnativereusables.com" asChild>
+//             <Button>
+//               <Text>Browse the documents</Text>
+//             </Button>
+//           </Link>
+//           <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
+//             <Button variant="ghost">
+//               <Text>Star the Repo</Text>
+//               <Icon as={StarIcon} />
+//             </Button>
+//           </Link>
+//           <Button
+//             onPress={() => {
+//               router.push('/settings');
+//             }}>
+//             <Text>Go to settings</Text>
+//           </Button>
+//           <Button
+//             onPress={() => {
+//               router.push('/Dashboard');
+//             }}>
+//             <Text>Go to Dashboard</Text>
+//           </Button>
+//         </View>
+//       </View>
+//     </>
+//   );
+// }
+
+// const THEME_ICONS = {
+//   light: SunIcon,
+//   dark: MoonStarIcon,
+// };
+
+// function ThemeToggle() {
+//   const { colorScheme, toggleColorScheme } = useColorScheme();
+
+//   return (
+//     <Button
+//       onPressIn={toggleColorScheme}
+//       size="icon"
+//       variant="ghost"
+//       className="ios:size-9 rounded-full web:mx-4">
+//       <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" />
+//     </Button>
+//   );
+// }
+
+// app/index.tsx
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -15,6 +134,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { supabase } from '@/utils/supabase';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
@@ -32,8 +153,7 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
-import * as Notifications from 'expo-notifications';
-import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+// notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -47,28 +167,48 @@ Notifications.setNotificationHandler({
 export default function Screen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<any>(null);
 
-  const fetchSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setSession(session);
-  };
+  // notification setup
+  const [expoPushToken, setExpoPushToken] = React.useState('');
+  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
+    undefined
+  );
 
   React.useEffect(() => {
-    fetchSession();
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+    };
+    init();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    registerForPushNotificationsAsync()
+      .then((token) => setExpoPushToken(token ?? ''))
+      .catch((error: any) => setExpoPushToken(String(error)));
+
+    const notificationListener = Notifications.addNotificationReceivedListener((n) => {
+      setNotification(n);
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log(response);
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, []);
 
@@ -76,7 +216,7 @@ export default function Screen() {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMessage(error.message);
       } else {
@@ -91,31 +231,33 @@ export default function Screen() {
     }
   };
 
+  const upsertPushToken = async (session: any | null) => {
+    if (!session || !expoPushToken) return;
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id, expo_push_token: expoPushToken })
+      .select()
+      .single();
+    if (error) {
+      console.log('Error upserting push token:', error.message);
+    }
+  };
+
   const handleSignIn = async () => {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         setMessage(error.message);
       } else {
         console.log('Signed in successfully');
         setEmail('');
         setPassword('');
-      }
-
-      // upsert push token after sign-in
-      if (data.session) {
-        console.log('Upserting push token after sign-in...');
-        const { data: upsertData, error } = await supabase
-          .from('profiles')
-          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
-          .select();
-        if (error) {
-          console.log('Error upserting push token after sign-in:', error.message);
-        } else {
-          console.log('Push token upserted successfully after sign-in:', upsertData);
-        }
+        await upsertPushToken(data.session);
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -141,47 +283,64 @@ export default function Screen() {
     }
   };
 
-  // notification setup
-  const [expoPushToken, setExpoPushToken] = React.useState('');
-  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
-    undefined
-  );
+  // passwordless (OTP) sign-in
+  const [passwordLess, setPasswordLess] = React.useState(false);
+  const [otp, setOtp] = React.useState('');
 
-  React.useEffect(() => {
-    registerForPushNotificationsAsync()
-      .then(token => setExpoPushToken(token ?? ''))
-      .catch((error: any) => setExpoPushToken(`${error}`));
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage('One time password sent to your email. Check your inbox.');
+        setPassword('');
+        setPasswordLess(true);
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
+  const handleSignInWithOtp = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        console.log('Signed in successfully with OTP');
+        setEmail('');
+        setOtp('');
+        setPasswordLess(false);
+        await upsertPushToken(data.session);
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // when user interacts with notification (tap, etc.)
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log(response);
-    });
-
-    return () => {
-      notificationListener.remove();
-      responseListener.remove();
-    };
-  }, []);
-
-  if (!session) {
+  // OTP form
+  if (!session && passwordLess) {
     return (
       <>
         <Stack.Screen options={SCREEN_OPTIONS} />
         <View className="flex-1 items-center justify-center p-4">
-          <Image
-            source={LOGO[colorScheme ?? 'light']}
-            style={IMAGE_STYLE}
-            resizeMode="contain"
-          />
+          <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
 
-          <View className="gap-4 p-4 w-full max-w-xs mt-8">
-            <Text className="text-xl font-bold text-center mb-4">
-              Sign In to Your Account
-            </Text>
+          <View className="mt-8 w-full max-w-xs gap-4 p-4">
+            <Text className="mb-4 text-center text-xl font-bold">Sign In to Your Account</Text>
 
             <Text className="text-sm text-muted-foreground">Email</Text>
             <TextInput
@@ -190,7 +349,55 @@ export default function Screen() {
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+            />
+
+            <Text className="text-sm text-muted-foreground">One Time Password</Text>
+            <TextInput
+              value={otp}
+              onChangeText={setOtp}
+              placeholder="123456"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+            />
+
+            <View className="flex-row gap-2">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onPress={handleSignInWithOtp}
+                className="flex-1">
+                <Text>{loading ? 'Please wait...' : 'Sign In With OTP'}</Text>
+              </Button>
+            </View>
+
+            {message ? (
+              <Text className="mt-2 text-center text-sm text-foreground">{message}</Text>
+            ) : null}
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  // email/password sign-in + sign-up form
+  if (!session) {
+    return (
+      <>
+        <Stack.Screen options={SCREEN_OPTIONS} />
+        <View className="flex-1 items-center justify-center p-4">
+          <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
+
+          <View className="mt-8 w-full max-w-xs gap-4 p-4">
+            <Text className="mb-4 text-center text-xl font-bold">Sign In to Your Account</Text>
+
+            <Text className="text-sm text-muted-foreground">Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
             />
 
             <Text className="text-sm text-muted-foreground">Password</Text>
@@ -199,53 +406,52 @@ export default function Screen() {
               onChangeText={setPassword}
               placeholder="••••••••"
               secureTextEntry
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
             />
 
             <View className="flex-row gap-2">
-              <Button
-                disabled={loading}
-                onPress={handleSignUp}
-                className="flex-1"
-              >
+              <Button disabled={loading} onPress={handleSignUp} className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Sign Up'}</Text>
               </Button>
               <Button
                 variant="outline"
                 disabled={loading}
                 onPress={handleSignIn}
-                className="flex-1"
-              >
+                className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Sign In'}</Text>
+              </Button>
+            </View>
+            <View className="flex-row gap-2">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onPress={handleForgotPassword}
+                className="flex-1">
+                <Text>{loading ? 'Please wait...' : 'Send OTP to email'}</Text>
               </Button>
             </View>
 
             {message ? (
-              <Text className="text-sm text-foreground text-center mt-2">
-                {message}
-              </Text>
+              <Text className="mt-2 text-center text-sm text-foreground">{message}</Text>
             ) : null}
           </View>
         </View>
       </>
     );
   }
+
+  // signed-in: show your original main content
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-        <Button
-          variant="outline"
-          disabled={loading}
-          onPress={handleSignOut}
-          className="flex-1"
-        >
+        <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
           <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
         </Button>
         <Card>
           <CardHeader>
-            <CardTitle>Card Testing SFESFDESF</CardTitle>
+            <CardTitle>Card Title</CardTitle>
             <CardDescription>Card Description</CardDescription>
           </CardHeader>
           <CardContent>
@@ -286,7 +492,6 @@ export default function Screen() {
             }}>
             <Text>Go to settings</Text>
           </Button>
-          {/* //////////////////// */}
           <Button
             onPress={() => {
               router.push('/Dashboard');

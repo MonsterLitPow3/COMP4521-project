@@ -36,17 +36,16 @@ export default function RootLayout() {
       // home/clock-in-out route
       setActiveTab('clock');
     }
-    // you can refine mapping for 'user' later
   }, [segments]);
 
   const handleTabPress = (key: TabKey) => {
     setActiveTab(key);
     if (key === 'clock') {
-      router.push('/'); // your clock-in/out / home page
+      router.push('/');
     } else if (key === 'dashboard') {
       router.push('/Dashboard');
     } else if (key === 'user') {
-      router.push('/Team&Member'); // temp mapping for user page
+      router.push('/Team&Member');
     } else if (key === 'settings') {
       router.push('/settings');
     }
@@ -55,54 +54,78 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack>
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="settings/index"
-          options={{
-            headerShown: true,
-            headerTitle: 'This is a setting page',
-            headerBackVisible: false,
-            headerRight: () => <Feather name="settings" size={24} color="black" />,
-            headerLeft: () => (
-              <Entypo
-                onPress={() => router.push('/')}
-                name="chevron-with-circle-left"
-                size={24}
-                color="black"
-              />
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-        <Stack.Screen
-          name="Dashboard/index"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-            headerRight: () => (
-              <View className="mb-5 mr-3 mt-5 flex-row">
-                <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+          <Stack.Screen
+            name="settings/index"
+            options={{
+              headerShown: true,
+              headerTitle: 'This is a setting page',
+              headerBackVisible: false,
+              headerRight: () => <Feather name="settings" size={24} color="black" />,
+              headerLeft: () => (
+                <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-black">
+                  <Entypo
+                    onPress={() => router.push('/')}
+                    name="chevron-with-circle-left"
+                    size={24}
+                    color="black"
+                  />
+                </View>
+              ),
+            }}
+          />
+
+          <Stack.Screen
+            name="Dashboard/index"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerLeft: () => (
+                <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
                     onPress={() => router.push('/')}
                     name="arrow-u-left-top"
                     size={25}
                     color="white"
                   />
+                </View>
+              ),
+              headerRight: () => (
+                <View className="mb-5 mr-3 mt-5 flex-row">
+                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+                    <AntDesign
+                      onPress={() => router.push('/Dashboard/index_2')}
+                      name="plus"
+                      className="p-1"
+                      size={20}
+                      color="black"
+                    />
+                  </View>
+                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+                    <AntDesign
+                      onPress={() => router.push('/Dashboard/History')}
+                      name="clock-circle"
+                      className="p-1"
+                      size={20}
+                      color="black"
+                    />
+                  </View>
                 </View>
               ),
             }}
@@ -143,7 +166,6 @@ export default function RootLayout() {
                     <AntDesign
                       onPress={() => router.push('/Dashboard/History')}
                       name="clock-circle"
-                      className="p-0.5"
                       size={23}
                       color="black"
                     />
@@ -153,7 +175,7 @@ export default function RootLayout() {
               headerLeft: () => (
                 <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-                    onPress={() => router.push('../')}
+                    onPress={() => router.push('/Dashboard')}
                     name="arrow-u-left-top"
                     size={25}
                     color="white"
@@ -178,13 +200,13 @@ export default function RootLayout() {
               },
               headerRight: () => (
                 <View className="mr-3 flex-row">
-                  <View className="h-7 w-7 rounded-sm bg-white">
+                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
                     <AntDesign
                       onPress={() => router.push('/Dashboard/History')}
                       name="clock-circle"
-                      size={19}
+                      className="p-1"
+                      size={20}
                       color="black"
-                      className="m-1 flex items-center justify-center"
                     />
                   </View>
                 </View>
@@ -256,7 +278,7 @@ export default function RootLayout() {
               headerLeft: () => (
                 <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-                    onPress={() => router.push('../')}
+                    onPress={() => router.push('/Dashboard')}
                     name="arrow-u-left-top"
                     size={25}
                     color="white"
@@ -282,11 +304,10 @@ export default function RootLayout() {
               headerLeft: () => (
                 <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-                    onPress={() => router.push('../')}
+                    onPress={() => router.push('/Dashboard')}
                     name="arrow-u-left-top"
                     size={18}
                     color="white"
-                    className="m-1"
                   />
                 </View>
               ),
