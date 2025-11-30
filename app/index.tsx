@@ -5,7 +5,7 @@ import { Link, Stack, useRouter } from 'expo-router';
 import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { Image, type ImageStyle, View } from 'react-native';
+import { Image, type ImageStyle, View, TextInput } from 'react-native';
 import {
   Card,
   CardContent,
@@ -32,15 +32,217 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export default function Screen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
+  const [session, setSession] = React.useState<any>(null);
 
+  const fetchSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setSession(session);
+  };
+
+  React.useEffect(() => {
+    fetchSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignUp = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage('Sign-up email sent. Check your inbox.');
+        setEmail('');
+        setPassword('');
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        console.log('Signed in successfully');
+        setEmail('');
+        setPassword('');
+      }
+
+      // upsert push token after sign-in
+      if (data.session) {
+        console.log('Upserting push token after sign-in...');
+        const { data: upsertData, error } = await supabase
+          .from('profiles')
+          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
+          .select();
+        if (error) {
+          console.log('Error upserting push token after sign-in:', error.message);
+        } else {
+          console.log('Push token upserted successfully after sign-in:', upsertData);
+        }
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage('Signed out successfully');
+      }
+    } catch (err: any) {
+      setMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // notification setup
+  const [expoPushToken, setExpoPushToken] = React.useState('');
+  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
+    undefined
+  );
+
+  React.useEffect(() => {
+    registerForPushNotificationsAsync()
+      .then(token => setExpoPushToken(token ?? ''))
+      .catch((error: any) => setExpoPushToken(`${error}`));
+
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      setNotification(notification);
+    });
+
+    // when user interacts with notification (tap, etc.)
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log(response);
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
+
+  if (!session) {
+    return (
+      <>
+        <Stack.Screen options={SCREEN_OPTIONS} />
+        <View className="flex-1 items-center justify-center p-4">
+          <Image
+            source={LOGO[colorScheme ?? 'light']}
+            style={IMAGE_STYLE}
+            resizeMode="contain"
+          />
+
+          <View className="gap-4 p-4 w-full max-w-xs mt-8">
+            <Text className="text-xl font-bold text-center mb-4">
+              Sign In to Your Account
+            </Text>
+
+            <Text className="text-sm text-muted-foreground">Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+            />
+
+            <Text className="text-sm text-muted-foreground">Password</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secureTextEntry
+              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+            />
+
+            <View className="flex-row gap-2">
+              <Button
+                disabled={loading}
+                onPress={handleSignUp}
+                className="flex-1"
+              >
+                <Text>{loading ? 'Please wait...' : 'Sign Up'}</Text>
+              </Button>
+              <Button
+                variant="outline"
+                disabled={loading}
+                onPress={handleSignIn}
+                className="flex-1"
+              >
+                <Text>{loading ? 'Please wait...' : 'Sign In'}</Text>
+              </Button>
+            </View>
+
+            {message ? (
+              <Text className="text-sm text-foreground text-center mt-2">
+                {message}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </>
+    );
+  }
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
+        <Button
+          variant="outline"
+          disabled={loading}
+          onPress={handleSignOut}
+          className="flex-1"
+        >
+          <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
+        </Button>
         <Card>
           <CardHeader>
             <CardTitle>Card Testing SFESFDESF</CardTitle>

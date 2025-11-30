@@ -55,77 +55,48 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <View style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen
-            name="settings/index"
-            options={{
-              headerShown: true,
-              headerTitle: 'This is a setting page',
-              headerBackVisible: false,
-              headerRight: () => <Feather name="settings" size={24} color="black" />,
-              headerLeft: () => (
-                <Entypo
-                  onPress={() => router.push('/')}
-                  name="chevron-with-circle-left"
-                  size={24}
-                  color="black"
-                />
-              ),
-            }}
-          />
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="settings/index"
+          options={{
+            headerShown: true,
+            headerTitle: 'This is a setting page',
+            headerBackVisible: false,
+            headerRight: () => <Feather name="settings" size={24} color="black" />,
+            headerLeft: () => (
+              <Entypo
+                onPress={() => router.push('/')}
+                name="chevron-with-circle-left"
+                size={24}
+                color="black"
+              />
+            ),
+            // headerBackImageSource: () => (<Image></Image>)
+          }}
+        />
+        <Stack.Screen
+          name="Dashboard/index"
+          options={{
+            headerShown: true,
+            headerTitle: '',
+            headerBackVisible: false,
+            headerStyle: {
+              backgroundColor: '#292D32',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
 
-          <Stack.Screen
-            name="index"
-            options={{
-              headerShown: false,
-            }}
-          />
-
-          <Stack.Screen
-            name="Dashboard/index"
-            options={{
-              headerShown: true,
-              headerTitle: '',
-              headerBackVisible: false,
-              headerStyle: {
-                backgroundColor: '#292D32',
-              },
-              headerTintColor: '#ffffff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              headerRight: () => (
-                <View
-                  style={{
-                    marginBottom: 20,
-                    marginRight: 12,
-                    marginTop: 20,
-                    flexDirection: 'row',
-                    backgroundColor: 'transparent',
-                  }}>
-                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
-                    <MaterialCommunityIcons
-                      onPress={() => router.push('/Dashboard/index_2')}
-                      name="plus"
-                      size={27}
-                      color="black"
-                    />
-                  </View>
-
-                  <View className="h-7 w-7 rounded-sm bg-white">
-                    <AntDesign
-                      onPress={() => router.push('/Dashboard/History')}
-                      name="clock-circle"
-                      className="p-1.5"
-                      size={16}
-                      color="black"
-                    />
-                  </View>
-                </View>
-              ),
-              headerLeft: () => (
-                <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
+            headerRight: () => (
+              <View className="mb-5 mr-3 mt-5 flex-row">
+                <View className="mr-2 h-7 w-7 rounded-sm bg-white">
                   <MaterialCommunityIcons
                     onPress={() => router.push('/')}
                     name="arrow-u-left-top"
