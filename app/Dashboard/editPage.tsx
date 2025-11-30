@@ -1,5 +1,4 @@
-// app/Dashboard/index_2.tsx  (Add New Task)
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,22 +7,25 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 
+// Editable SubTask type
 type SubTask = {
+  subTaskID?: number; // optional: undefined for newly added subtasks
+  pId: number;
   sTName: string;
   sTddlDate: string;
   sTddlTime: string;
   Descriptions: string;
-  sTComments: string;
   sTStatus: number;
 };
 
-type SubTaskField = keyof SubTask;
+type SubTaskField = keyof Omit<SubTask, 'subTaskID' | 'pId' | 'sTStatus'>;
 
 function isValidDate(str: string) {
   const match = str.match(/^(\d{2,4})\/(\d{2})\/(\d{2})$/);
@@ -48,29 +50,106 @@ function getFullDateTime(dateStr: string, timeStr: string) {
   return new Date(isoDateStr);
 }
 
-export default function AddTaskPage() {
+export default function EditPage() {
+  const { taskID } = useLocalSearchParams<{ taskID: string }>();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+
+  // main task fields
   const [taskName, setTaskName] = useState('');
   const [ddlDate, setDdlDate] = useState('');
   const [ddlTime, setDdlTime] = useState('');
-  const [subTasks, setSubTasks] = useState<SubTask[]>([
-    { sTName: '', sTddlDate: '', sTddlTime: '', Descriptions: '', sTComments: '', sTStatus: 0 },
-  ]);
 
-  const router = useRouter();
+  // editable subtasks (existing + newly added)
+  const [subTasks, setSubTasks] = useState<SubTask[]>([]);
 
-  const addSubTaskPanel = () => {
-    setSubTasks([
-      ...subTasks,
-      { sTName: '', sTddlDate: '', sTddlTime: '', Descriptions: '', sTComments: '', sTStatus: 0 },
-    ]);
-  };
+  useEffect(() => {
+    const fetchTaskAndSubTasks = async () => {
+      if (!taskID) {
+        Alert.alert('Error', 'No Task ID found.');
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const numericTaskId = Number(taskID);
+
+        // 1. Fetch Task
+        const { data: taskData, error: taskError } = await supabase
+          .from('Tasks')
+          .select('*')
+          .eq('taskID', numericTaskId)
+          .single();
+
+        if (taskError || !taskData) {
+          Alert.alert('Error', taskError?.message || 'Task not found.');
+          setLoading(false);
+          return;
+        }
+
+        setTaskName(taskData.taskName || '');
+        setDdlDate(taskData.ddlDate || '');
+        setDdlTime(taskData.ddlTime || '');
+
+        // 2. Fetch SubTasks
+        const { data: subData, error: subError } = await supabase
+          .from('subTasks')
+          .select('*')
+          .eq('pId', numericTaskId);
+
+        if (subError) {
+          Alert.alert('Error', subError.message);
+          setSubTasks([]);
+        } else {
+          setSubTasks(
+            (subData ?? []).map((st: any) => ({
+              subTaskID: st.subTaskID,
+              pId: st.pId,
+              sTName: st.sTName,
+              sTddlDate: st.sTddlDate,
+              sTddlTime: st.sTddlTime,
+              Descriptions: st.Descriptions,
+              sTStatus: st.sTStatus,
+            }))
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTaskAndSubTasks();
+  }, [taskID]);
 
   const handleSubTaskChange = (idx: number, field: SubTaskField, value: string) => {
     setSubTasks((prev) => prev.map((st, i) => (i === idx ? { ...st, [field]: value } : st)));
   };
 
-  const handleSubmit = async () => {
-    // 1. basic format validation
+  const addSubTaskPanel = () => {
+    if (!taskID) return;
+    const numericTaskId = Number(taskID);
+    setSubTasks((prev) => [
+      ...prev,
+      {
+        subTaskID: undefined, // new; will be inserted
+        pId: numericTaskId,
+        sTName: '',
+        sTddlDate: '',
+        sTddlTime: '',
+        Descriptions: '',
+        sTStatus: 0,
+      },
+    ]);
+  };
+
+  const handleUpdate = async () => {
+    if (!taskID) {
+      Alert.alert('Error', 'No Task ID found.');
+      return;
+    }
+
+    // 1. Validate formats
     if (!isValidDate(ddlDate) || !isValidTime(ddlTime)) {
       Alert.alert(
         'Validation Error',
@@ -85,6 +164,7 @@ export default function AddTaskPage() {
       }
     }
 
+    // 2. Required fields
     const isTaskValid = taskName.trim() !== '' && ddlDate.trim() !== '' && ddlTime.trim() !== '';
     const areSubTasksValid = subTasks.every(
       (st) =>
@@ -93,6 +173,7 @@ export default function AddTaskPage() {
         st.sTddlTime.trim() !== '' &&
         st.Descriptions.trim() !== ''
     );
+
     if (!isTaskValid) {
       Alert.alert('Validation Error', 'Please fill out all Task fields.');
       return;
@@ -102,74 +183,102 @@ export default function AddTaskPage() {
       return;
     }
 
-    // 2. cannot be less than current date/time
-    const now = new Date();
-    const taskDeadline = getFullDateTime(ddlDate, ddlTime);
-    if (taskDeadline < now) {
-      Alert.alert('Validation Error', 'Task deadline cannot be earlier than the current time.');
-      return;
-    }
-    for (const st of subTasks) {
-      const stDeadline = getFullDateTime(st.sTddlDate, st.sTddlTime);
-      if (stDeadline < now) {
-        Alert.alert(
-          'Validation Error',
-          'SubTask deadline cannot be earlier than the current time.'
-        );
-        return;
-      }
-    }
+    const numericTaskId = Number(taskID);
 
-    // 3. create task
-    const { data: taskData, error: taskError } = await supabase
-      .from('Tasks')
-      .insert([
-        {
+    // 3. Edit mode always sets Exclamation status (1)
+    const taskDeadline = getFullDateTime(ddlDate, ddlTime);
+    const now = new Date();
+    console.log('Edited deadline vs now:', taskDeadline, now);
+
+    const exclamationStatus = 1;
+
+    setLoading(true);
+    try {
+      // 4. Update main Task
+      const { error: taskErr } = await supabase
+        .from('Tasks')
+        .update({
           taskName,
           ddlDate,
           ddlTime,
-          taskStatus: 0,
-          progress: 0,
-        },
-      ])
-      .select();
+          taskStatus: exclamationStatus, // always 1 in edit mode
+        })
+        .eq('taskID', numericTaskId);
 
-    if (taskError) {
-      Alert.alert('Task Insertion Error', taskError.message || 'Unknown error inserting Task.');
-      return;
+      if (taskErr) {
+        Alert.alert('Update Error', taskErr.message);
+        setLoading(false);
+        return;
+      }
+
+      // Split subtasks into existing vs new
+      const existingSubTasks = subTasks.filter((st) => st.subTaskID != null);
+      const newSubTasks = subTasks.filter((st) => st.subTaskID == null);
+
+      // 5a. Update existing SubTasks
+      for (const st of existingSubTasks) {
+        const { error: sErr } = await supabase
+          .from('subTasks')
+          .update({
+            sTName: st.sTName,
+            sTddlDate: st.sTddlDate,
+            sTddlTime: st.sTddlTime,
+            Descriptions: st.Descriptions,
+          })
+          .eq('subTaskID', st.subTaskID as number);
+
+        if (sErr) {
+          Alert.alert('SubTask Update Error', sErr.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 5b. Insert newly added SubTasks
+      if (newSubTasks.length > 0) {
+        const newRows = newSubTasks.map((st) => {
+          const stDeadline = getFullDateTime(st.sTddlDate, st.sTddlTime);
+          let sTStatus = 0;
+          if (stDeadline < now) sTStatus = 2;
+          return {
+            pId: numericTaskId,
+            sTName: st.sTName,
+            sTddlDate: st.sTddlDate,
+            sTddlTime: st.sTddlTime,
+            Descriptions: st.Descriptions,
+            sTStatus,
+          };
+        });
+
+        const { error: insertErr } = await supabase.from('subTasks').insert(newRows);
+
+        if (insertErr) {
+          Alert.alert('New SubTasks Insert Error', insertErr.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      Alert.alert('Success', 'Task edits saved with Exclamation status!');
+      router.back();
+    } finally {
+      setLoading(false);
     }
-
-    const insertedTask = Array.isArray(taskData) ? taskData[0] : taskData;
-    const parentTaskID = insertedTask?.taskID;
-    if (!parentTaskID) {
-      Alert.alert('Task ID missing', 'Could not retrieve Task ID.');
-      return;
-    }
-
-    const subTaskRows = subTasks.map((st) => ({
-      ...st,
-      pId: parentTaskID,
-      sTStatus: 0,
-      sTComments: st.sTComments ?? '',
-    }));
-
-    const { error: sTError } = await supabase.from('subTasks').insert(subTaskRows);
-    if (sTError) {
-      Alert.alert(
-        'SubTasks Insertion Error',
-        sTError.message || 'Unknown error inserting SubTasks.'
-      );
-      return;
-    }
-
-    Alert.alert('Success', 'Task and SubTasks published!');
-    router.push('/Dashboard');
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color="#000" />
+        <Text>Loading Task...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View className="mb-1 w-max flex-1 items-center justify-center">
-        <Text style={styles.title}>Add New Task</Text>
+        <Text style={styles.title}>Edit Task</Text>
       </View>
       <Card className="mb-7">
         <CardContent>
@@ -198,7 +307,7 @@ export default function AddTaskPage() {
       </Card>
 
       {subTasks.map((subTask, idx) => (
-        <View key={idx}>
+        <View key={subTask.subTaskID ?? `new-${idx}`}>
           <Card style={styles.subTaskCard}>
             <Text style={styles.subtitle}>SubTask {idx + 1}</Text>
             <TextInput
@@ -220,27 +329,26 @@ export default function AddTaskPage() {
               placeholder="Deadline Time (HH:MM:SS)"
             />
             <TextInput
-              style={styles.descriptionInput}
+              style={styles.input}
               value={subTask.Descriptions}
               onChangeText={(v) => handleSubTaskChange(idx, 'Descriptions', v)}
               placeholder="Description"
-              multiline
-              textAlignVertical="top"
             />
           </Card>
           <View className="mt-3" />
         </View>
       ))}
 
+      {/* "+" Add SubTask Button */}
       <View style={styles.plusButtonContainer}>
         <TouchableOpacity style={styles.plusButton} onPress={addSubTaskPanel}>
           <MaterialCommunityIcons name="plus" size={32} color="black" />
         </TouchableOpacity>
       </View>
 
-      <View className="pb-20" style={styles.publishButtonContainer}>
-        <TouchableOpacity style={styles.publishButton} onPress={handleSubmit}>
-          <Text style={styles.publishButtonText}>Publish Task</Text>
+      <View style={styles.publishButtonContainer}>
+        <TouchableOpacity style={styles.publishButton} onPress={handleUpdate}>
+          <Text style={styles.publishButtonText}>Save Edit</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -248,7 +356,14 @@ export default function AddTaskPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, padding: 20, backgroundColor: '#fafafa' },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 38,
+    backgroundColor: '#fafafa',
+  },
   title: {
     fontWeight: 'bold',
     fontSize: 24,
@@ -263,16 +378,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     height: 40,
     paddingHorizontal: 10,
-  },
-  descriptionInput: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 10,
-    minHeight: 80,
-    maxHeight: 140,
-    textAlignVertical: 'top',
   },
   subTaskCard: {
     backgroundColor: '#cfcfcfff',
@@ -305,7 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   publishButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#ef4444',
     paddingVertical: 12,
     paddingHorizontal: 36,
     borderRadius: 25,

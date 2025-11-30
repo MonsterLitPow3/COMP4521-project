@@ -1,442 +1,357 @@
+// app/_layout.tsx
 import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
-import { TabActions, ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
-import { Image } from 'react-native-svg';
 import Feather from '@expo/vector-icons/Feather';
 import Entypo from '@expo/vector-icons/Entypo';
-import { StackScreen } from 'react-native-screens';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Button } from '@/components/ui/button';
-import ScreenFooter, {
-  FooterComponent,
-} from 'react-native-screens/lib/typescript/components/ScreenFooter';
+import FooterBar, { TabKey } from '@/app/FooterBar';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const Tab = createBottomTabNavigator();
+  const segments = useSegments();
+
+  const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
+
+  // Simple sync from route to activeTab
+  useEffect(() => {
+    const root = segments[0] as string | undefined;
+
+    if (root === 'Dashboard') {
+      setActiveTab('dashboard');
+    } else if (root === 'settings') {
+      setActiveTab('settings');
+    } else if (root === undefined || root === '') {
+      // home/clock-in-out route
+      setActiveTab('clock');
+    }
+    // you can refine mapping for 'user' later
+  }, [segments]);
+
+  const handleTabPress = (key: TabKey) => {
+    setActiveTab(key);
+    if (key === 'clock') {
+      router.push('/'); // your clock-in/out / home page
+    } else if (key === 'dashboard') {
+      router.push('/Dashboard');
+    } else if (key === 'user') {
+      router.push('/Team&Member'); // temp mapping for user page
+    } else if (key === 'settings') {
+      router.push('/settings');
+    }
+  };
 
   return (
     <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack>
-        <Stack.Screen
-          name="settings/index"
-          options={{
-            headerShown: true,
-            headerTitle: 'This is a setting page',
-            headerBackVisible: false,
-            headerRight: () => <Feather name="settings" size={24} color="black" />,
-            headerLeft: () => (
-              <Entypo
-                onPress={() => router.push('/')}
-                name="chevron-with-circle-left"
-                size={24}
-                color="black"
-              />
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="Dashboard/index"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            // headerRight: '#ffffff',
-            headerTintColor: '#ffffff',
-
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-
-            headerRight: () => (
-              <View
-                style={{
-                  marginBottom: 20,
-                  marginRight: 12,
-                  marginTop: 20,
-                  flexDirection: 'row',
-                  backgroundColor: 'transparent',
-                }}>
-                <View className="mr-2 h-7 w-7 rounded-sm bg-white">
-                  <MaterialCommunityIcons
-                    onPress={() => router.push('/Dashboard/index_2')}
-                    name="plus"
-                    size={20}
-                    color="black"
-                    className="m-1 flex items-center justify-center"
-                  />
-                </View>
-
-                <View className="h-7 w-7 rounded-sm bg-white">
-                  <AntDesign
-                    onPress={() => router.push('/Dashboard/History')}
-                    name="clock-circle"
-                    size={16}
-                    color="black"
-                    className="m-1.5 flex items-center justify-center"
-                  />
-                </View>
-              </View>
-            ),
-
-            headerLeft: () => (
-              <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen
+            name="settings/index"
+            options={{
+              headerShown: true,
+              headerTitle: 'This is a setting page',
+              headerBackVisible: false,
+              headerRight: () => <Feather name="settings" size={24} color="black" />,
+              headerLeft: () => (
+                <Entypo
                   onPress={() => router.push('/')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
+                  name="chevron-with-circle-left"
+                  size={24}
+                  color="black"
                 />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
+              ),
+            }}
+          />
 
-        <Stack.Screen
-          name="Dashboard/index_2"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+          <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-            headerRight: () => (
-              <View className="mr-3 flex-row">
-                {/* <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+          <Stack.Screen
+            name="Dashboard/index"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#ffffff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerRight: () => (
+                <View
+                  style={{
+                    marginBottom: 20,
+                    marginRight: 12,
+                    marginTop: 20,
+                    flexDirection: 'row',
+                    backgroundColor: 'transparent',
+                  }}>
+                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+                    <MaterialCommunityIcons
+                      onPress={() => router.push('/Dashboard/index_2')}
+                      name="plus"
+                      size={27}
+                      color="black"
+                    />
+                  </View>
+
+                  <View className="h-7 w-7 rounded-sm bg-white">
+                    <AntDesign
+                      onPress={() => router.push('/Dashboard/History')}
+                      name="clock-circle"
+                      className="p-1.5"
+                      size={16}
+                      color="black"
+                    />
+                  </View>
+                </View>
+              ),
+              headerLeft: () => (
+                <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-
-                    name="plus"
-                    size={20}
-                    color="black"
-                    className="m-1 flex items-center justify-center"
-                  />
-                </View> */}
-
-                <View className="h-7 w-7 rounded-sm bg-white">
-                  <AntDesign
-                    onPress={() => router.push('/Dashboard/History')}
-                    name="clock-circle"
-                    size={16}
-                    color="black"
-                    className="m-1.5 flex items-center justify-center"
+                    onPress={() => router.push('/')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
                   />
                 </View>
-              </View>
-            ),
+              ),
+            }}
+          />
 
-            headerLeft: () => (
-              <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
+          <Stack.Screen
+            name="Dashboard/editPage"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#ffffff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerRight: () => (
+                <View
+                  style={{
+                    marginBottom: 20,
+                    marginRight: 12,
+                    marginTop: 20,
+                    flexDirection: 'row',
+                    backgroundColor: 'transparent',
+                  }}>
+                  <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+                    <MaterialCommunityIcons
+                      onPress={() => router.push('/Dashboard/index_2')}
+                      name="plus"
+                      size={27}
+                      color="black"
+                    />
+                  </View>
 
-        <Stack.Screen
-          name="Dashboard/index_3"
-          options={{
-            headerShown: true,
-
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-
-            headerRight: () => (
-              <View className="mr-3 flex-row">
-                {/* <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+                  <View className="h-7 w-7 rounded-sm bg-white">
+                    <AntDesign
+                      onPress={() => router.push('/Dashboard/History')}
+                      name="clock-circle"
+                      className="p-0.5"
+                      size={23}
+                      color="black"
+                    />
+                  </View>
+                </View>
+              ),
+              headerLeft: () => (
+                <View className="ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-
-                    name="plus"
-                    size={20}
-                    color="black"
-                    className="m-1 flex items-center justify-center"
-                  />
-                </View> */}
-
-                <View className="mb-5 mt-5 h-7 w-7 rounded-sm bg-white">
-                  <AntDesign
-                    onPress={() => router.push('/Dashboard/History')}
-                    name="clock-circle"
-                    size={16}
-                    color="black"
-                    className="m-1.5 flex items-center justify-center"
+                    onPress={() => router.push('../')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
                   />
                 </View>
-              </View>
-            ),
+              ),
+            }}
+          />
 
-            headerLeft: () => (
-              <View className="bg-#292D32 ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-
-        <Stack.Screen
-          name="Dashboard/index_4"
-          options={{
-            headerShown: true,
-
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-
-            headerRight: () => (
-              <View className="mr-3 flex-row">
-                {/* <View className="mr-2 h-7 w-7 rounded-sm bg-white">
+          <Stack.Screen
+            name="Dashboard/index_2"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerRight: () => (
+                <View className="mr-3 flex-row">
+                  <View className="h-7 w-7 rounded-sm bg-white">
+                    <AntDesign
+                      onPress={() => router.push('/Dashboard/History')}
+                      name="clock-circle"
+                      size={19}
+                      color="black"
+                      className="m-1 flex items-center justify-center"
+                    />
+                  </View>
+                </View>
+              ),
+              headerLeft: () => (
+                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-
-                    name="plus"
-                    size={20}
-                    color="black"
-                    className="m-1 flex items-center justify-center"
-                  />
-                </View> */}
-
-                <View className="mb-5 mt-5 h-7 w-7 rounded-sm bg-white">
-                  <AntDesign
-                    onPress={() => router.push('/Dashboard/History')}
-                    name="clock-circle"
-                    size={16}
-                    color="black"
-                    className="m-1.5 flex items-center justify-center"
+                    onPress={() => router.push('/Dashboard')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
                   />
                 </View>
-              </View>
-            ),
+              ),
+            }}
+          />
 
-            headerLeft: () => (
-              <View className="bg-#292D32 ml-3 mr-2.5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-
-        <Stack.Screen
-          name="Dashboard/History"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-
-            headerRight: () => (
-              <View className="mr-3 flex-row">
-                <View className="mr-1 h-7 w-7 rounded-sm bg-white">
+          <Stack.Screen
+            name="Dashboard/History"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerRight: () => (
+                <View className="mr-3 flex-row">
+                  <View className="mr-1 h-7 w-7 rounded-sm bg-white">
+                    <MaterialCommunityIcons
+                      onPress={() => router.push('/Dashboard/index_2')}
+                      name="plus"
+                      size={27}
+                      color="black"
+                    />
+                  </View>
+                </View>
+              ),
+              headerLeft: () => (
+                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
                   <MaterialCommunityIcons
-                    onPress={() => router.push('/Dashboard/index_2')}
-                    name="plus"
-                    size={20}
-                    color="black"
-                    className="m-1 flex items-center justify-center"
+                    onPress={() => router.push('/Dashboard')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
                   />
                 </View>
+              ),
+            }}
+          />
 
-                {/* <View className="h-7 w-7 rounded-sm bg-white">
-                  <AntDesign
-                    name="clock-circle"
-                    size={16}
-                    color="black"
-                    className="m-1.5 flex items-center justify-center"
+          <Stack.Screen
+            name="Dashboard/ProgressDetail"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerLeft: () => (
+                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
+                  <MaterialCommunityIcons
+                    onPress={() => router.push('../')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
                   />
-                </View> */}
-              </View>
-            ),
+                </View>
+              ),
+            }}
+          />
 
-            headerLeft: () => (
-              <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
+          <Stack.Screen
+            name="Dashboard/ProgressFinalDetail"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerLeft: () => (
+                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
+                  <MaterialCommunityIcons
+                    onPress={() => router.push('../')}
+                    name="arrow-u-left-top"
+                    size={18}
+                    color="white"
+                    className="m-1"
+                  />
+                </View>
+              ),
+            }}
+          />
 
-        <Stack.Screen
-          name="Dashboard/ProgressDetail"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+          <Stack.Screen
+            name="Team&Member/index"
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: '#292D32',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerLeft: () => (
+                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
+                  <MaterialCommunityIcons
+                    onPress={() => router.push('/')}
+                    name="arrow-u-left-top"
+                    size={25}
+                    color="white"
+                  />
+                </View>
+              ),
+            }}
+          />
+        </Stack>
 
-            // headerRight: () => (
-            //   <View className="mr-3 flex-row">
-            //     <View className="mr-1 h-7 w-7 rounded-sm bg-white">
-            //       <MaterialCommunityIcons
-            //         onPress={() => router.push('/Dashboard/index_2')}
-            //         name="plus"
-            //         size={20}
-            //         color="black"
-            //         className="m-1 flex items-center justify-center"
-            //       />
-            //     </View>
-
-            //     {/* <View className="h-7 w-7 rounded-sm bg-white">
-            //       <AntDesign
-            //         name="clock-circle"
-            //         size={16}
-            //         color="black"
-            //         className="m-1.5 flex items-center justify-center"
-            //       />
-            //     </View> */}
-            //   </View>
-            // ),
-
-            headerLeft: () => (
-              <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-
-        <Stack.Screen
-          name="Dashboard/ProgressFinalDetail"
-          options={{
-            headerShown: true,
-            headerTitle: '',
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: '#292D32',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-
-            // headerRight: () => (
-            //   <View className="mr-3 flex-row">
-            //     <View className="mr-1 h-7 w-7 rounded-sm bg-white">
-            //       <MaterialCommunityIcons
-            //         onPress={() => router.push('/Dashboard/index_2')}
-            //         name="plus"
-            //         size={20}
-            //         color="black"
-            //         className="m-1 flex items-center justify-center"
-            //       />
-            //     </View>
-
-            //     {/* <View className="h-7 w-7 rounded-sm bg-white">
-            //       <AntDesign
-            //         name="clock-circle"
-            //         size={16}
-            //         color="black"
-            //         className="m-1.5 flex items-center justify-center"
-            //       />
-            //     </View> */}
-            //   </View>
-            // ),
-
-            headerLeft: () => (
-              <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                <MaterialCommunityIcons
-                  onPress={() => router.push('/Dashboard/ProgressDetail')}
-                  name="arrow-u-left-top"
-                  size={18}
-                  color="white"
-                  className="m-1"
-                />
-              </View>
-            ),
-            // headerBackImageSource: () => (<Image></Image>)
-          }}
-        />
-      </Stack>
+        {/* Global animated footer */}
+        <FooterBar activeTab={activeTab} onTabPress={handleTabPress} />
+      </View>
 
       <PortalHost />
     </ThemeProvider>
