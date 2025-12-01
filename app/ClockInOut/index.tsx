@@ -127,7 +127,7 @@ export default function ClockInOutScreen() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // location fetching
+  // !update! location fetching
   React.useEffect(() => {
     const fetchLocation = async () => {
       try {
@@ -195,6 +195,8 @@ export default function ClockInOutScreen() {
               teamId: selectedTeamId,
               timestamp: now.toISOString(),
               inOut: !clockInStatus ? 'IN' : 'OUT',
+              locationLatitude: location?.latitude ?? null, // !update! to store location
+              locationLongitude: location?.latitude ?? null,
             },
           ]);
 
@@ -214,7 +216,7 @@ export default function ClockInOutScreen() {
   return (
     <View className="flex-1 items-center justify-center p-4">
       <Text className="mb-4 text-2xl font-bold">Clock In/Out</Text>
-
+      {/* !update! */}
       {!loading && location && (
         <MapView
           provider={PROVIDER_GOOGLE}
