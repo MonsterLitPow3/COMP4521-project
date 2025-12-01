@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   Platform,
   TextInput,
+  ScrollView,
 } from 'react-native';
+
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
@@ -20,7 +22,6 @@ import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { ScrollView } from 'react-native';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -124,7 +125,7 @@ export default function SettingsScreen() {
       const latitude = loc.coords.latitude;
       const longitude = loc.coords.longitude;
 
-      // Save to Teams table
+      // correctly update REAL column names in DB
       const { error } = await supabase
         .from('Teams')
         .update({
@@ -134,8 +135,8 @@ export default function SettingsScreen() {
         .eq('teamId', teamId);
 
       if (error) {
-        console.log(error);
-        alert('Failed to update office location');
+        console.log('Supabase update error:', error);
+        alert('Failed to update office location: ' + error.message);
       } else {
         alert('Office location updated!');
         setTeamData((prev) => ({
@@ -195,76 +196,65 @@ export default function SettingsScreen() {
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={['top', 'left', 'right']}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View
-          style={[
-            styles.headerContainer,
-            { backgroundColor: '#292D32', paddingTop: headerTopPadding },
-          ]}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => router.push('../')} style={styles.headerBackButton}>
-              <AntDesign name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
+      {/* HEADER */}
+      <View
+        style={[
+          styles.headerContainer,
+          { backgroundColor: '#292D32', paddingTop: headerTopPadding },
+        ]}>
+        <TouchableOpacity onPress={() => router.push('../')} style={styles.headerBackButton}>
+          <AntDesign name="arrow-left" size={20} color="#fff" />
+        </TouchableOpacity>
 
-          <Text style={styles.headerTitleText}>Settings</Text>
+        <Text style={styles.headerTitleText}>Settings</Text>
+        <View style={{ width: 32 }} />
+      </View>
 
-          <View style={styles.headerRight} />
-        </View>
+      {/* SCROLL CONTENT */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
+        {/* Appearance */}
+        <View style={[styles.section, { borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
 
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
-
-            <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
-              <Switch
-                value={isDark}
-                onValueChange={toggleColorScheme}
-                thumbColor={isDark ? '#f9fafb' : '#111827'}
-                trackColor={{ false: '#d1d5db', true: '#4b5563' }}
-              />
-            </View>
-            <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-              Toggle between light and dark themes. This will affect dashboard and other screens.
-            </Text>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleColorScheme}
+              thumbColor={isDark ? '#f9fafb' : '#111827'}
+              trackColor={{ false: '#d1d5db', true: '#4b5563' }}
+            />
           </View>
         </View>
 
-        {/* Leader Settings */}
+        {/* TEAM SETTINGS */}
         {role === 'leader' && (
           <View style={[styles.section, { borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Team Clock-in Settings
             </Text>
 
-            {/* Clock-in time */}
-            <Text style={[styles.label, { marginTop: 8, color: colors.foreground }]}>
-              Clock-in Time
-            </Text>
+            <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
             <DateTimePicker
               mode="time"
               value={clockInTime}
               onChange={(e, t) => t && setClockInTime(t)}
             />
 
-            {/* Clock-out time */}
-            <Text style={[styles.label, { marginTop: 16, color: colors.foreground }]}>
-              Clock-out Time
-            </Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
             <DateTimePicker
               mode="time"
               value={clockOutTime}
               onChange={(e, t) => t && setClockOutTime(t)}
             />
 
-            {/* Show office location map */}
-            <View style={{ height: 200, marginBottom: 16 }}>
+            {/* MAP */}
+            <View style={{ height: 220, marginVertical: 12 }}>
               <MapView
-                style={{ flex: 1 }}
+                style={{ flex: 1, borderRadius: 12 }}
                 region={{
-                  latitude: Number(teamData?.locationLatitude) || 22.302711,
-                  longitude: Number(teamData?.locationLongitude) || 114.177216,
+                  latitude: Number(teamData?.locationLatitude) || 22.3027,
+                  longitude: Number(teamData?.locationLongitude) || 114.1772,
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}>
@@ -274,24 +264,18 @@ export default function SettingsScreen() {
                       latitude: Number(teamData.locationLatitude),
                       longitude: Number(teamData.locationLongitude),
                     }}
-                    title="Current Office Location"
+                    title="Office Location"
                   />
                 )}
               </MapView>
             </View>
 
-            <Button
-              style={[styles.container, { backgroundColor: colors.background }]}
-              onPress={setCurrentLocationAsOffice}>
-              <Text style={[styles.label, { color: colors.foreground }]}>
-                Use current location as office
-              </Text>
+            <Button onPress={setCurrentLocationAsOffice}>
+              <Text>Use current location as office</Text>
             </Button>
 
-            <Button
-              style={[styles.container, { backgroundColor: colors.background }]}
-              onPress={saveTeamSettings}>
-              <Text style={[styles.label, { color: colors.foreground }]}>Save Settings</Text>
+            <Button className="mt-4" onPress={saveTeamSettings}>
+              <Text>Save Settings</Text>
             </Button>
           </View>
         )}
@@ -327,22 +311,11 @@ const styles = StyleSheet.create({
   },
 
   headerContainer: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingBottom: 20,
-    minHeight: 56,
-  },
-  headerLeft: {
-    width: 60,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  headerRight: {
-    width: 60,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+    paddingBottom: 12,
   },
   headerTitleText: {
     flex: 1,
@@ -368,13 +341,12 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   label: { fontSize: 15 },
   helpText: { fontSize: 13 },
   input: {
