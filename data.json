@@ -1,0 +1,182 @@
+[
+  {
+    "taskID": 1,
+    "taskName": "Tasks 1",
+    "ddlDate": "2025/11/13",
+    "ddlTime": "15:26:30",
+    "taskStatus": 1,
+    "progress": 10,
+    "subTasks": [
+      {
+        "subTaskID": 1,
+        "sTName": "subTask 1",
+        "sTddlDate": "2025/11/13",
+        "sTddlTime": "15:26:50",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 2,
+        "sTName": "subTask 2",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney2", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 3,
+        "sTName": "subTask 3",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney3", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      }
+    ]
+  },
+  {
+    "taskID": 2,
+    "taskName": "Taks 2",
+    "ddlDate": "YYYY/MM/DD",
+    "ddlTime": "HH/MM/SS",
+    "taskStatus": 0,
+    "progress": 90,
+    "subTasks": [
+      {
+        "subTaskID": 1,
+        "sTName": "subTask 2-1",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 2,
+        "sTName": "subTask 2-2",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 3,
+        "sTName": "subTask 3-3",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      }
+    ]
+  },
+  {
+    "taskID": 3,
+    "taskName": "Taks 3",
+    "ddlDate": "YYYY/MM/DD",
+    "ddlTime": "HH/MM/SS",
+    "taskStatus": 1,
+    "progress": 50,
+    "subTasks": [
+      {
+        "subTaskID": 1,
+        "sTName": "subTask 1",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 2,
+        "sTName": "subTask 2",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 3,
+        "sTName": "subTask 3",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      }
+    ]
+  },
+  {
+    "taskID": 4,
+    "taskName": "Taks 4",
+    "ddlDate": "YYYY/MM/DD",
+    "ddlTime": "HH/MM/SS",
+    "taskStatus": 1,
+    "progress": 20,
+    "subTasks": [
+      {
+        "subTaskID": 1,
+        "sTName": "subTask 1",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 2,
+        "sTName": "subTask 2",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      },
+      {
+        "subTaskID": 3,
+        "sTName": "subTask 3",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "This is a description demo for showing the maximum width of the content, please be aware that this is just a text case",
+        "sTStatus": 2,
+        "Member": { "M1": "Sydney", "M2": "New York", "M3": "Berlin", "M4": "Melbourn" },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      }
+    ]
+  },
+  {
+    "taskID": 5,
+    "taskName": "Taks 5",
+    "ddlDate": "YYYY/MM/DD",
+    "ddlTime": "HH/MM/SS",
+    "taskStatus": 0,
+    "progress": 70,
+    "subTasks": [
+      {
+        "subTaskID": 1,
+        "sTName": "subTask 5",
+        "sTddlDate": "YYYY/MM/DD",
+        "sTddlTime": "HH/MM/SS",
+        "Descriptions": "XXXXXXXXXXXXXXXXXX",
+        "sTStatus": 0,
+        "Member": { "M1": "Peking", "M2": "Texas", "M3": "Guangdong", "M4": false },
+        "sTDocs": { "Doc1": "", "Doc2": "", "Doc3": "", "Doc4": "" }
+      }
+    ]
+  }
+]
