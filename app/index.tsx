@@ -1,121 +1,3 @@
-// // app/index.tsx
-// import { Button } from '@/components/ui/button';
-// import { Icon } from '@/components/ui/icon';
-// import { Text } from '@/components/ui/text';
-// import { Link, Stack, useRouter } from 'expo-router';
-// import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
-// import { useColorScheme } from 'nativewind';
-// import * as React from 'react';
-// import { Image, type ImageStyle, View } from 'react-native';
-// import {
-//   Card,
-//   CardContent,
-//   CardDescription,
-//   CardFooter,
-//   CardHeader,
-//   CardTitle,
-// } from '@/components/ui/card';
-// import { supabase } from '@/utils/supabase';
-
-// const LOGO = {
-//   light: require('@/assets/images/react-native-reusables-light.png'),
-//   dark: require('@/assets/images/react-native-reusables-dark.png'),
-// };
-
-// const SCREEN_OPTIONS = {
-//   title: 'React Native Reusables',
-//   headerTransparent: true,
-//   headerRight: () => <ThemeToggle />,
-// };
-
-// const IMAGE_STYLE: ImageStyle = {
-//   height: 76,
-//   width: 76,
-// };
-
-// export default function Screen() {
-//   const { colorScheme } = useColorScheme();
-//   const router = useRouter();
-
-//   return (
-//     <>
-//       <Stack.Screen options={SCREEN_OPTIONS} />
-//       <View className="flex-1 items-center justify-center gap-8 p-4">
-//         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-//         <Card>
-//           <CardHeader>
-//             <CardTitle>Card Title</CardTitle>
-//             <CardDescription>Card Description</CardDescription>
-//           </CardHeader>
-//           <CardContent>
-//             <Text>Card Content</Text>
-//           </CardContent>
-//           <CardFooter className="flex-col gap-2">
-//             <Button className="w-full">
-//               <Text>Subscribe</Text>
-//             </Button>
-//             <Button variant="outline" className="w-full bg-red-300">
-//               <Text>Later</Text>
-//             </Button>
-//           </CardFooter>
-//         </Card>
-//         <View className="gap-2 p-4">
-//           <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-//             1. Edit <Text variant="code">app/index.tsx</Text> to get started.
-//           </Text>
-//           <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-//             2. Save to see your changes instantly.
-//           </Text>
-//         </View>
-//         <View className="flex-col gap-2">
-//           <Link href="https://reactnativereusables.com" asChild>
-//             <Button>
-//               <Text>Browse the documents</Text>
-//             </Button>
-//           </Link>
-//           <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
-//             <Button variant="ghost">
-//               <Text>Star the Repo</Text>
-//               <Icon as={StarIcon} />
-//             </Button>
-//           </Link>
-//           <Button
-//             onPress={() => {
-//               router.push('/settings');
-//             }}>
-//             <Text>Go to settings</Text>
-//           </Button>
-//           <Button
-//             onPress={() => {
-//               router.push('/Dashboard');
-//             }}>
-//             <Text>Go to Dashboard</Text>
-//           </Button>
-//         </View>
-//       </View>
-//     </>
-//   );
-// }
-
-// const THEME_ICONS = {
-//   light: SunIcon,
-//   dark: MoonStarIcon,
-// };
-
-// function ThemeToggle() {
-//   const { colorScheme, toggleColorScheme } = useColorScheme();
-
-//   return (
-//     <Button
-//       onPressIn={toggleColorScheme}
-//       size="icon"
-//       variant="ghost"
-//       className="ios:size-9 rounded-full web:mx-4">
-//       <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" />
-//     </Button>
-//   );
-// }
-
 // app/index.tsx
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -153,7 +35,6 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
-// notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -166,6 +47,7 @@ Notifications.setNotificationHandler({
 
 export default function Screen() {
   const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const router = useRouter();
 
   const [email, setEmail] = React.useState('');
@@ -331,6 +213,8 @@ export default function Screen() {
     }
   };
 
+  const inputTextStyle = { color: isDark ? '#ffffff' : '#000000' };
+
   // OTP form
   if (!session && passwordLess) {
     return (
@@ -350,6 +234,7 @@ export default function Screen() {
               keyboardType="email-address"
               autoCapitalize="none"
               className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <Text className="text-sm text-muted-foreground">One Time Password</Text>
@@ -358,6 +243,7 @@ export default function Screen() {
               onChangeText={setOtp}
               placeholder="123456"
               className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <View className="flex-row gap-2">
@@ -398,6 +284,7 @@ export default function Screen() {
               keyboardType="email-address"
               autoCapitalize="none"
               className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <Text className="text-sm text-muted-foreground">Password</Text>
@@ -407,6 +294,7 @@ export default function Screen() {
               placeholder="••••••••"
               secureTextEntry
               className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <View className="flex-row gap-2">

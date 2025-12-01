@@ -1,10 +1,21 @@
 // app/Team&Member/index.tsx
 import * as React from 'react';
-import { ScrollView, View, Text, Alert } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  RefreshControl,
+} from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase } from '@/utils/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useColorScheme } from 'nativewind';
+import { THEME } from '@/lib/theme';
+import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TeamRow = {
   teamId: number;
@@ -22,33 +33,28 @@ type TeamMemberRow = {
 
 type TeamWithMembers = TeamRow & { members: TeamMemberRow[] };
 
-// random 6‑character invite key
-function generateInviteKey(length = 6) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let out = '';
-  for (let i = 0; i < length; i++) {
-    out += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return out;
-}
-
-export default function TeamAndMember() {
-  const [teamName, setTeamName] = React.useState('');
-  const [createdInviteKey, setCreatedInviteKey] = React.useState<string | null>(null);
-  const [joinInviteKey, setJoinInviteKey] = React.useState('');
-  const [loadingCreate, setLoadingCreate] = React.useState(false);
-  const [loadingJoin, setLoadingJoin] = React.useState(false);
+export default function TeamAndMemberIndex() {
   const [teams, setTeams] = React.useState<TeamWithMembers[]>([]);
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  // load all teams current user belongs to
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = isDark ? THEME.dark : THEME.light;
+
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const headerTopPadding = Platform.OS === 'ios' ? Math.max(insets.top - 4, 0) : insets.top;
+
   const loadMyTeams = React.useCallback(async () => {
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
-    if (userError || !user) return;
+    if (userError || !user) {
+      setTeams([]);
+      return;
+    }
 
-    // all memberships for this user
     const { data: memberships, error: memError } = await supabase
       .from('TeamMembers')
       .select('teamId')
@@ -61,7 +67,6 @@ export default function TeamAndMember() {
 
     const teamIds = memberships.map((m) => m.teamId);
 
-    // teams + all their members
     const [{ data: teamRows }, { data: memberRows }] = await Promise.all([
       supabase.from('Teams').select('*').in('teamId', teamIds),
       supabase.from('TeamMembers').select('*').in('teamId', teamIds),
@@ -79,238 +84,173 @@ export default function TeamAndMember() {
   }, []);
 
   React.useEffect(() => {
+    const sub = supabase.auth.onAuthStateChange(() => {
+      loadMyTeams();
+    });
     loadMyTeams();
+    return () => {
+      sub.data.subscription.unsubscribe();
+    };
   }, [loadMyTeams]);
 
-  // create a team, creator becomes leader
-  const handleCreateTeam = async () => {
-    const trimmedName = teamName.trim();
-    if (!trimmedName) {
-      Alert.alert('Team name required', 'Please enter a team name.');
-      return;
-    }
-
-    setLoadingCreate(true);
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) {
-        Alert.alert('Not signed in', 'You must be signed in to create a team.');
-        return;
-      }
-
-      // generate unique invite key
-      let inviteKey = generateInviteKey();
-      for (let i = 0; i < 5; i++) {
-        const { data: existing } = await supabase
-          .from('Teams')
-          .select('teamId')
-          .eq('inviteKey', inviteKey)
-          .maybeSingle();
-        if (!existing) break;
-        inviteKey = generateInviteKey();
-      }
-
-      const { data: team, error: teamError } = await supabase
-        .from('Teams')
-        .insert({ name: trimmedName, inviteKey })
-        .select()
-        .single<TeamRow>();
-
-      if (teamError || !team) {
-        Alert.alert('Error', teamError?.message ?? 'Failed to create team.');
-        return;
-      }
-
-      const { error: memberError } = await supabase.from('TeamMembers').insert({
-        teamId: team.teamId,
-        role: 'leader',
-        uId: user.id, // references auth.users.id
-        MemberName: user.email ?? 'Leader',
-      });
-
-      if (memberError) {
-        Alert.alert('Error', memberError.message);
-        return;
-      }
-
-      setCreatedInviteKey(team.inviteKey);
-      setTeamName('');
-      await loadMyTeams();
-    } finally {
-      setLoadingCreate(false);
-    }
-  };
-
-  // join a team via invite key; user can join many teams but only once per team
-  // join a team via invite key; user can join many teams but only once per team
-  const handleJoinTeam = async () => {
-    const key = joinInviteKey.trim();
-    if (!key) {
-      Alert.alert('Invalid key', 'Please enter a 6‑character invite key.');
-      return;
-    }
-
-    setLoadingJoin(true);
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) {
-        Alert.alert('Not signed in', 'You must be signed in to join a team.');
-        return;
-      }
-
-      // 1) find team by invite key
-      const { data: team, error: teamError } = await supabase
-        .from('Teams')
-        .select('*')
-        .eq('inviteKey', key)
-        .single<TeamRow>();
-
-      if (teamError || !team) {
-        Alert.alert('Team not found', 'No team exists with that invite key.');
-        return;
-      }
-
-      // 2) check if this user is already a member of that team
-      const { data: existing, error: existsError } = await supabase
-        .from('TeamMembers')
-        .select('mId')
-        .eq('teamId', team.teamId)
-        .eq('uId', user.id)
-        .maybeSingle();
-
-      if (existsError) {
-        Alert.alert('Error', existsError.message);
-        return;
-      }
-
-      if (existing) {
-        // already a member – just tell the user and stop
-        Alert.alert('Already joined', 'You are already a member of this team.');
-        setJoinInviteKey('');
-        await loadMyTeams();
-        return;
-      }
-
-      // 3) not a member yet → insert new membership
-      const { error: memberError } = await supabase.from('TeamMembers').insert({
-        teamId: team.teamId,
-        uId: user.id,
-        role: 'member',
-        MemberName: user.email ?? 'Member',
-      });
-
-      if (memberError) {
-        Alert.alert('Error', memberError.message);
-        return;
-      }
-
-      setJoinInviteKey('');
-      await loadMyTeams();
-    } finally {
-      setLoadingJoin(false);
-    }
-  };
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await loadMyTeams();
+    setRefreshing(false);
+  }, [loadMyTeams]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>Team & Member</Text>
-        <Text>1. Create Team → creator becomes leader, gets invite key.</Text>
-        <Text>2. Join Team → enter invite key to join once per team.</Text>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={['top', 'left', 'right']}>
+      <View
+        style={[
+          styles.headerContainer,
+          { backgroundColor: '#292D32', paddingTop: headerTopPadding },
+        ]}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => router.push('../')} style={styles.headerBackButton}>
+            <AntDesign name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.headerTitleText}>Team & Member</Text>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => router.push('/Team&Member/createTeam')}>
+            <MaterialCommunityIcons name="plus" size={22} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => router.push('/Team&Member/joinTeam')}>
+            <AntDesign name="usergroup-add" size={18} color="#000" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Create Team */}
-      <View style={{ marginBottom: 32 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8 }}>Create a new Team</Text>
-        <Input value={teamName} onChangeText={setTeamName} placeholder="Team name" />
-        <Button
-          disabled={loadingCreate}
-          className="mt-3 flex-row items-center justify-center"
-          onPress={handleCreateTeam}>
-          <Text className="text-white">{loadingCreate ? 'Creating...' : 'Create Team'}</Text>
-        </Button>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 40,
+          backgroundColor: colors.background,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={[styles.tip, { color: '#4b5563' }]}>
+            You can create a new team or join an existing one using the buttons in the top-right
+            corner of this page.
+          </Text>
+        </View>
 
-        {createdInviteKey && (
-          <View style={{ marginTop: 12 }}>
-            <Text style={{ fontSize: 14 }}>Your Team Invite Key:</Text>
-            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{createdInviteKey}</Text>
-            <Text style={{ fontSize: 12, color: '#6b7280' }}>
-              Share this key so others can join your team.
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Join Team */}
-      <View style={{ marginBottom: 32 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
-          Join an existing Team
-        </Text>
-        <Input
-          value={joinInviteKey}
-          onChangeText={setJoinInviteKey}
-          placeholder="Enter 6‑character invite key"
-          autoCapitalize="characters"
-        />
-        <Button
-          disabled={loadingJoin}
-          variant="outline"
-          className="mt-3 flex-row items-center justify-center"
-          onPress={handleJoinTeam}>
-          <Ionicons name="log-in-outline" size={18} color="black" style={{ marginRight: 6 }} />
-          <Text>{loadingJoin ? 'Joining...' : 'Join Team'}</Text>
-        </Button>
-      </View>
-
-      {/* Teams list */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Your Teams</Text>
         {teams.length === 0 && (
-          <Text style={{ fontSize: 13, color: '#6b7280' }}>You are not in any team yet.</Text>
-        )}
-        {teams.map((team) => (
-          <View
-            key={team.teamId}
-            style={{
-              marginBottom: 16,
-              padding: 12,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: '#e5e7eb',
-            }}>
-            <Text style={{ fontSize: 16, fontWeight: '600' }}>{team.name}</Text>
-            <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>
-              Invite key: {team.inviteKey}
+          <View style={{ marginBottom: 24 }}>
+            <Text style={[styles.emptyText, { color: '#6b7280' }]}>
+              You are not in any team yet. Use the + button to create a team or the group icon to
+              join with an invite key.
             </Text>
-
-            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 4 }}>Members</Text>
-            {team.members.length === 0 && (
-              <Text style={{ fontSize: 12, color: '#6b7280' }}>No members yet for this team.</Text>
-            )}
-            {team.members.map((m) => (
-              <View
-                key={m.mId}
-                style={{
-                  marginBottom: 4,
-                  paddingVertical: 6,
-                  paddingHorizontal: 10,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: '#e5e7eb',
-                }}>
-                <Text style={{ fontSize: 14, fontWeight: '500' }}>{m.MemberName}</Text>
-                <Text style={{ fontSize: 12, color: '#6b7280' }}>Role: {m.role}</Text>
-              </View>
-            ))}
           </View>
-        ))}
-      </View>
-    </ScrollView>
+        )}
+
+        <View style={{ marginBottom: 16 }}>
+          {teams.map((team) => (
+            <View key={team.teamId} style={styles.teamCard}>
+              <Text style={styles.teamName}>{team.name}</Text>
+              <Text style={styles.inviteKey}>Invite key: {team.inviteKey}</Text>
+
+              <Text style={styles.membersTitle}>Members</Text>
+              {team.members.length === 0 && (
+                <Text style={styles.noMembers}>No members yet for this team.</Text>
+              )}
+              {team.members.map((m) => (
+                <View key={m.mId} style={styles.memberRow}>
+                  <Text style={styles.memberName}>{m.MemberName}</Text>
+                  <Text style={styles.memberRole}>Role: {m.role}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingBottom: 20,
+    minHeight: 56,
+  },
+  headerLeft: {
+    width: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerRight: {
+    width: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  headerTitleText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerBackButton: {
+    height: 32,
+    width: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIconButton: {
+    height: 30,
+    width: 30,
+    borderRadius: 6,
+    marginHorizontal: 4,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
+  tip: { fontSize: 14, color: '#4b5563' },
+  emptyText: { fontSize: 14, color: '#6b7280' },
+  teamCard: {
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  teamName: { fontSize: 16, fontWeight: '600' },
+  inviteKey: { fontSize: 13, color: '#6b7280', marginBottom: 6 },
+  membersTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  noMembers: { fontSize: 12, color: '#6b7280' },
+  memberRow: {
+    marginBottom: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  memberName: { fontSize: 14, fontWeight: '500' },
+  memberRole: { fontSize: 12, color: '#6b7280' },
+});
