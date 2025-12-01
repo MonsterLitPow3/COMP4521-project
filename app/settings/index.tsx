@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase';
 // import * as React from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { ScrollView } from 'react-native';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -107,6 +110,46 @@ export default function SettingsScreen() {
   //   load();
   // }, []);
 
+  const setCurrentLocationAsOffice = async () => {
+    try {
+      // Ask permission
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission to access location was denied');
+        return;
+      }
+
+      // Get current location
+      const loc = await Location.getCurrentPositionAsync({});
+      const latitude = loc.coords.latitude;
+      const longitude = loc.coords.longitude;
+
+      // Save to Teams table
+      const { error } = await supabase
+        .from('Teams')
+        .update({
+          locationLatitude: latitude,
+          locationLongitude: longitude,
+        })
+        .eq('teamId', teamId);
+
+      if (error) {
+        console.log(error);
+        alert('Failed to update office location');
+      } else {
+        alert('Office location updated!');
+        setTeamData((prev) => ({
+          ...prev,
+          locationLatitude: latitude,
+          locationLongitude: longitude,
+        }));
+      }
+    } catch (err) {
+      console.log(err);
+      alert('Error getting location');
+    }
+  };
+
   // Save updated team settings
   const saveTeamSettings = async () => {
     if (!teamId) return;
@@ -129,7 +172,7 @@ export default function SettingsScreen() {
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={['top', 'left', 'right']}>
-      <View style={styles.screen}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
         <View
           style={[
             styles.headerContainer,
@@ -192,32 +235,44 @@ export default function SettingsScreen() {
               onChange={(e, t) => t && setClockOutTime(t)}
             />
 
-            {/* Location */}
-            <Text style={[styles.label, { marginTop: 16, color: colors.foreground }]}>
-              Allowed Clock-in Location
-            </Text>
+            {/* Show office location map */}
+            <View style={{ height: 200, marginBottom: 16 }}>
+              <MapView
+                style={{ flex: 1 }}
+                region={{
+                  latitude: Number(teamData?.locationLatitude) || 22.302711,
+                  longitude: Number(teamData?.locationLongitude) || 114.177216,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}>
+                {teamData?.locationLatitude && (
+                  <Marker
+                    coordinate={{
+                      latitude: Number(teamData.locationLatitude),
+                      longitude: Number(teamData.locationLongitude),
+                    }}
+                    title="Current Office Location"
+                  />
+                )}
+              </MapView>
+            </View>
 
-            <TextInput
-              placeholder="Latitude"
-              value={lat}
-              onChangeText={setLat}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Longitude"
-              value={lng}
-              onChangeText={setLng}
-              keyboardType="numeric"
-              style={styles.input}
-            />
+            <Button
+              style={[styles.container, { backgroundColor: colors.background }]}
+              onPress={setCurrentLocationAsOffice}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Use current location as office
+              </Text>
+            </Button>
 
-            <Button className="mt-4" onPress={saveTeamSettings}>
-              <Text>Save Settings</Text>
+            <Button
+              style={[styles.container, { backgroundColor: colors.background }]}
+              onPress={saveTeamSettings}>
+              <Text style={[styles.label, { color: colors.foreground }]}>Save Settings</Text>
             </Button>
           </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
