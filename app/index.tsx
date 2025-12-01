@@ -18,6 +18,16 @@ import {
 import { supabase } from '@/utils/supabase';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+import ClockInOutScreen from './ClockInOut';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
@@ -34,16 +44,6 @@ const IMAGE_STYLE: ImageStyle = {
   height: 76,
   width: 76,
 };
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 export default function Screen() {
   const { colorScheme } = useColorScheme();
@@ -102,8 +102,12 @@ export default function Screen() {
       if (error) {
         setMessage(error.message);
       } else {
-        setMessage('Sign-up email sent. Check your inbox.\nBut if you have signed up before, the email will not be sent.');
-        alert('If you have confirmed sign-up before, please sign in directly and do not sign up again.');
+        setMessage(
+          'Sign-up email sent. Check your inbox.\nBut if you have signed up before, the email will not be sent.'
+        );
+        alert(
+          'If you have confirmed sign-up before, please sign in directly and do not sign up again.'
+        );
         setEmail('');
         setPassword('');
       }
@@ -347,13 +351,11 @@ export default function Screen() {
             }}>
             <Text>Go to settings</Text>
           </Button>
-          <Button
-            onPress={() => {
-              router.push('/Dashboard');
-            }}>
-            <Text>Go to Dashboard</Text>
+          <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
+            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
           </Button>
         </View>
+        <ClockInOutScreen />
       </View>
     </>
   );
