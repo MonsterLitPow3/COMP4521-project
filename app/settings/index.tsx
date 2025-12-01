@@ -55,13 +55,6 @@ export default function SettingsScreen() {
               Toggle between light and dark themes. This will affect dashboard and other screens.
             </Text>
           </View>
-
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>General</Text>
-            <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-              Add more settings here (notifications, language, etc.).
-            </Text>
-          </View>
         </View>
       </View>
     </SafeAreaView>
