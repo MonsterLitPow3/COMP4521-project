@@ -168,6 +168,29 @@ export default function SettingsScreen() {
     else alert('Team settings updated!');
   };
 
+  const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const handleResetPassword = async () => {
+    try {
+      setLoading(true);
+      const user = supabase.auth.getUser();
+      if (!user) throw new Error('No user logged in');
+
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+      alert('Password updated successfully');
+    } catch (error) {
+      alert('Error updating password: ' + error.message);
+    } finally {
+      setPassword('');
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -273,6 +296,26 @@ export default function SettingsScreen() {
           </View>
         )}
       </ScrollView>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
+            <View style={styles.row}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+              />
+              <Button disabled={loading} onPress={handleResetPassword} style={[styles.label, { color: colors.foreground }]}>
+                <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                  {loading ? 'Please wait...' : 'Reset password'}
+                </Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+        
+      </View>
     </SafeAreaView>
   );
 }
