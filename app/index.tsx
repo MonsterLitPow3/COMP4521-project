@@ -35,6 +35,9 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+import ClockInOutScreen from './ClockInOut';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -348,12 +351,15 @@ export default function Screen() {
             <Text>Go to settings</Text>
           </Button>
           <Button
-            onPress={() => {
-              router.push('/Dashboard');
-            }}>
-            <Text>Go to Dashboard</Text>
+            variant="outline"
+            disabled={loading}
+            onPress={handleSignOut}
+            className="flex-1"
+          >
+            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
           </Button>
         </View>
+          <ClockInOutScreen />
       </View>
     </>
   );
