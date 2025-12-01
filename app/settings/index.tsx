@@ -8,7 +8,6 @@ import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase';
-import * as React from 'react';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -19,6 +18,29 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
 
   const headerTopPadding = Platform.OS === 'ios' ? Math.max(insets.top - 6, 0) : insets.top;
+
+  const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const handleResetPassword = async () => {
+    try {
+      setLoading(true);
+      const user = supabase.auth.getUser();
+      if (!user) throw new Error('No user logged in');
+
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+      alert('Password updated successfully');
+    } catch (error) {
+      alert('Error updating password: ' + error.message);
+    } finally {
+      setPassword('');
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView
@@ -59,6 +81,25 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
+            <View style={styles.row}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+              />
+              <Button disabled={loading} onPress={handleResetPassword} style={[styles.label, { color: colors.foreground }]}>
+                <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                  {loading ? 'Please wait...' : 'Reset password'}
+                </Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+        
       </View>
     </SafeAreaView>
   );
