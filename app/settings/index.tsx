@@ -300,6 +300,7 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
+      </View>
       </ScrollView>
     </SafeAreaView>
   );
