@@ -1,11 +1,14 @@
 // app/settings/index.tsx
 import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform, TextInput } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/utils/supabase';
+import * as React from 'react';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
