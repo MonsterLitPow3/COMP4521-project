@@ -34,6 +34,7 @@ const IMAGE_STYLE: ImageStyle = {
 
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
+import ClockInOutScreen from './ClockInOut';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -362,65 +363,17 @@ export default function Screen() {
       <Stack.Screen options={SCREEN_OPTIONS} />
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-        <Button
-          variant="outline"
-          disabled={loading}
-          onPress={handleSignOut}
-          className="flex-1"
-        >
-          <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
-        </Button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Card Testing SFESFDESF</CardTitle>
-            <CardDescription>Card Description</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Text>Card Content</Text>
-          </CardContent>
-          <CardFooter className="flex-col gap-2">
-            <Button className="w-full">
-              <Text>Subscribe</Text>
-            </Button>
-            <Button variant="outline" className="w-full bg-red-300">
-              <Text>Later</Text>
-            </Button>
-          </CardFooter>
-        </Card>
-        <View className="gap-2 p-4">
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            1. Edit <Text variant="code">app/index.tsx</Text> to get started.
-          </Text>
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            2. Save to see your changes instantly.
-          </Text>
-        </View>
-        <View className="flex-col gap-2">
-          <Link href="https://reactnativereusables.com" asChild>
-            <Button>
-              <Text>Browse the documents</Text>
-            </Button>
-          </Link>
-          <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
-            <Button variant="ghost">
-              <Text>Star the Repo</Text>
-              <Icon as={StarIcon} />
-            </Button>
-          </Link>
+        <View className="flex-row gap-2">
           <Button
-            onPress={() => {
-              router.push('/settings');
-            }}>
-            <Text>Go to settings</Text>
-          </Button>
-          {/* //////////////////// */}
-          <Button
-            onPress={() => {
-              router.push('/Dashboard');
-            }}>
-            <Text>Go to Dashboard</Text>
+            variant="outline"
+            disabled={loading}
+            onPress={handleSignOut}
+            className="flex-1"
+          >
+            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
           </Button>
         </View>
+          <ClockInOutScreen />
       </View>
     </>
   );
