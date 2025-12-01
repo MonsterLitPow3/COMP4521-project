@@ -19,6 +19,7 @@ import { supabase } from '@/utils/supabase';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 import ClockInOutScreen from './ClockInOut';
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -45,9 +46,20 @@ const IMAGE_STYLE: ImageStyle = {
   width: 76,
 };
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export default function Screen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+
   const router = useRouter();
 
   const [email, setEmail] = React.useState('');
@@ -94,6 +106,18 @@ export default function Screen() {
     };
   }, []);
 
+  const upsertPushToken = async (session: any | null, token: string) => {
+    if (!session?.user) return;
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id, expo_push_token: token })
+      .select()
+      .single();
+    if (error) {
+      console.log('Error upserting push token:', error.message);
+    }
+  };
+
   const handleSignUp = async () => {
     setLoading(true);
     setMessage(null);
@@ -115,17 +139,6 @@ export default function Screen() {
       setMessage(err?.message ?? 'An unexpected error occurred');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const upsertPushToken = async (session: any | null, token: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: session.user.id, expo_push_token: token })
-      .select()
-      .single();
-    if (error) {
-      console.log('Error upserting push token:', error.message);
     }
   };
 
@@ -209,7 +222,7 @@ export default function Screen() {
         setEmail('');
         setOtp('');
         setPasswordLess(false);
-        await upsertPushToken(data.session);
+        await upsertPushToken(data.session, expoPushToken);
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -333,7 +346,7 @@ export default function Screen() {
     );
   }
 
-  // signed-in: show your original main content
+  // signed-in: main content
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
@@ -350,9 +363,6 @@ export default function Screen() {
               router.push('/settings');
             }}>
             <Text>Go to settings</Text>
-          </Button>
-          <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
-            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
           </Button>
         </View>
         <ClockInOutScreen />

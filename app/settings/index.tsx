@@ -33,16 +33,16 @@ export default function SettingsScreen() {
   const handleResetPassword = async () => {
     try {
       setLoading(true);
-      const user = supabase.auth.getUser();
-      if (!user) throw new Error('No user logged in');
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('No user logged in');
 
       const { error } = await supabase.auth.updateUser({
-        password: password,
+        password,
       });
 
       if (error) throw error;
       alert('Password updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       alert('Error updating password: ' + error.message);
     } finally {
       setPassword('');
@@ -89,6 +89,7 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
+
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           <View style={[styles.section, { borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
@@ -97,12 +98,11 @@ export default function SettingsScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
+                secureTextEntry
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                placeholderTextColor={colors.mutedForeground}
               />
-              <Button
-                disabled={loading}
-                onPress={handleResetPassword}
-                style={[styles.label, { color: colors.foreground }]}>
+              <Button disabled={loading} onPress={handleResetPassword}>
                 <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
                   {loading ? 'Please wait...' : 'Reset password'}
                 </Text>
@@ -171,4 +171,12 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 15 },
   helpText: { fontSize: 13 },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
 });

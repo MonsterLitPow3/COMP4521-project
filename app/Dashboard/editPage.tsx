@@ -130,7 +130,6 @@ export default function EditPage() {
       };
     });
 
-    // load members for all these teams
     const { data: memberRows } = await supabase
       .from('TeamMembers')
       .select('*')
@@ -473,7 +472,6 @@ export default function EditPage() {
         </Card>
 
         {subTasks.map((subTask, idx) => {
-          // normalize Member to array for UI
           let memberArray: MemberJson[] = [];
           let raw = subTask.Member as any;
           if (raw) {
