@@ -1,3 +1,4 @@
+// app/index.tsx
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -15,6 +16,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { supabase } from '@/utils/supabase';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
@@ -47,29 +50,50 @@ Notifications.setNotificationHandler({
 
 export default function Screen() {
   const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const router = useRouter();
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<any>(null);
 
-  const fetchSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setSession(session);
-  };
+  // notification setup
+  const [expoPushToken, setExpoPushToken] = React.useState('');
+  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
+    undefined
+  );
 
   React.useEffect(() => {
-    fetchSession();
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+    };
+    init();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    registerForPushNotificationsAsync()
+      .then((token) => setExpoPushToken(token ?? ''))
+      .catch((error: any) => setExpoPushToken(String(error)));
+
+    const notificationListener = Notifications.addNotificationReceivedListener((n) => {
+      setNotification(n);
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log(response);
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, []);
 
@@ -77,11 +101,12 @@ export default function Screen() {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMessage(error.message);
       } else {
-        setMessage('Sign-up email sent. Check your inbox.');
+        setMessage('Sign-up email sent. Check your inbox.\nBut if you have signed up before, the email will not be sent.');
+        alert('If you have confirmed sign-up before, please sign in directly and do not sign up again.');
         setEmail('');
         setPassword('');
       }
@@ -92,31 +117,32 @@ export default function Screen() {
     }
   };
 
+  const upsertPushToken = async (session: any | null, token: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id, expo_push_token: token })
+      .select()
+      .single();
+    if (error) {
+      console.log('Error upserting push token:', error.message);
+    }
+  };
+
   const handleSignIn = async () => {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         setMessage(error.message);
       } else {
         console.log('Signed in successfully');
         setEmail('');
         setPassword('');
-      }
-
-      // upsert push token after sign-in
-      if (data.session) {
-        console.log('Upserting push token after sign-in...');
-        const { data: upsertData, error } = await supabase
-          .from('profiles')
-          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
-          .select();
-        if (error) {
-          console.log('Error upserting push token after sign-in:', error.message);
-        } else {
-          console.log('Push token upserted successfully after sign-in:', upsertData);
-        }
+        await upsertPushToken(data.session, expoPushToken);
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -129,6 +155,7 @@ export default function Screen() {
     setLoading(true);
     setMessage(null);
     try {
+      await upsertPushToken(session, '');
       const { error } = await supabase.auth.signOut();
       if (error) {
         setMessage(error.message);
@@ -142,40 +169,15 @@ export default function Screen() {
     }
   };
 
-  // notification setup
-  const [expoPushToken, setExpoPushToken] = React.useState('');
-  const [notification, setNotification] = React.useState<Notifications.Notification | undefined>(
-    undefined
-  );
-
-  React.useEffect(() => {
-    registerForPushNotificationsAsync()
-      .then(token => setExpoPushToken(token ?? ''))
-      .catch((error: any) => setExpoPushToken(`${error}`));
-
-    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
-
-    // when user interacts with notification (tap, etc.)
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log(response);
-    });
-
-    return () => {
-      notificationListener.remove();
-      responseListener.remove();
-    };
-  }, []);
-
-  // passwordless (OTP) sign-in, for users who forgot password
+  // passwordless (OTP) sign-in
   const [passwordLess, setPasswordLess] = React.useState(false);
   const [otp, setOtp] = React.useState('');
+
   const handleForgotPassword = async () => {
     setLoading(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({ email });
+      const { error } = await supabase.auth.signInWithOtp({ email });
       if (error) {
         setMessage(error.message);
       } else {
@@ -189,6 +191,7 @@ export default function Screen() {
       setLoading(false);
     }
   };
+
   const handleSignInWithOtp = async () => {
     setLoading(true);
     setMessage(null);
@@ -205,20 +208,7 @@ export default function Screen() {
         setEmail('');
         setOtp('');
         setPasswordLess(false);
-      }
-
-      // upsert push token after sign-in
-      if (data.session) {
-        console.log('Upserting push token after sign-in...');
-        const { data: upsertData, error } = await supabase
-          .from('profiles')
-          .upsert({ id: data.session.user.id, expo_push_token: expoPushToken })
-          .select();
-        if (error) {
-          console.log('Error upserting push token after sign-in:', error.message);
-        } else {
-          console.log('Push token upserted successfully after sign-in:', upsertData);
-        }
+        await upsertPushToken(data.session);
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -226,22 +216,19 @@ export default function Screen() {
       setLoading(false);
     }
   };
-  // after clicking signin with otp, show otp form
+
+  const inputTextStyle = { color: isDark ? '#ffffff' : '#000000' };
+
+  // OTP form
   if (!session && passwordLess) {
     return (
       <>
         <Stack.Screen options={SCREEN_OPTIONS} />
         <View className="flex-1 items-center justify-center p-4">
-          <Image
-            source={LOGO[colorScheme ?? 'light']}
-            style={IMAGE_STYLE}
-            resizeMode="contain"
-          />
+          <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
 
-          <View className="gap-4 p-4 w-full max-w-xs mt-8">
-            <Text className="text-xl font-bold text-center mb-4">
-              Sign In to Your Account
-            </Text>
+          <View className="mt-8 w-full max-w-xs gap-4 p-4">
+            <Text className="mb-4 text-center text-xl font-bold">Sign In to Your Account</Text>
 
             <Text className="text-sm text-muted-foreground">Email</Text>
             <TextInput
@@ -250,7 +237,8 @@ export default function Screen() {
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <Text className="text-sm text-muted-foreground">One Time Password</Text>
@@ -258,7 +246,8 @@ export default function Screen() {
               value={otp}
               onChangeText={setOtp}
               placeholder="123456"
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <View className="flex-row gap-2">
@@ -266,38 +255,30 @@ export default function Screen() {
                 variant="outline"
                 disabled={loading}
                 onPress={handleSignInWithOtp}
-                className="flex-1"
-              >
+                className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Sign In With OTP'}</Text>
               </Button>
             </View>
 
             {message ? (
-              <Text className="text-sm text-foreground text-center mt-2">
-                {message}
-              </Text>
+              <Text className="mt-2 text-center text-sm text-foreground">{message}</Text>
             ) : null}
           </View>
         </View>
       </>
     );
   }
-  // email password sign-in/sign-up form
+
+  // email/password sign-in + sign-up form
   if (!session) {
     return (
       <>
         <Stack.Screen options={SCREEN_OPTIONS} />
         <View className="flex-1 items-center justify-center p-4">
-          <Image
-            source={LOGO[colorScheme ?? 'light']}
-            style={IMAGE_STYLE}
-            resizeMode="contain"
-          />
+          <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
 
-          <View className="gap-4 p-4 w-full max-w-xs mt-8">
-            <Text className="text-xl font-bold text-center mb-4">
-              Sign In to Your Account
-            </Text>
+          <View className="mt-8 w-full max-w-xs gap-4 p-4">
+            <Text className="mb-4 text-center text-xl font-bold">Sign In to Your Account</Text>
 
             <Text className="text-sm text-muted-foreground">Email</Text>
             <TextInput
@@ -306,7 +287,8 @@ export default function Screen() {
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <Text className="text-sm text-muted-foreground">Password</Text>
@@ -315,23 +297,19 @@ export default function Screen() {
               onChangeText={setPassword}
               placeholder="••••••••"
               secureTextEntry
-              className="border rounded px-3 py-2 bg-transparent ios:text-foreground"
+              className="ios:text-foreground rounded border bg-transparent px-3 py-2"
+              style={inputTextStyle}
             />
 
             <View className="flex-row gap-2">
-              <Button
-                disabled={loading}
-                onPress={handleSignUp}
-                className="flex-1"
-              >
+              <Button disabled={loading} onPress={handleSignUp} className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Sign Up'}</Text>
               </Button>
               <Button
                 variant="outline"
                 disabled={loading}
                 onPress={handleSignIn}
-                className="flex-1"
-              >
+                className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Sign In'}</Text>
               </Button>
             </View>
@@ -340,30 +318,38 @@ export default function Screen() {
                 variant="outline"
                 disabled={loading}
                 onPress={handleForgotPassword}
-                className="flex-1"
-              >
+                className="flex-1">
                 <Text>{loading ? 'Please wait...' : 'Send OTP to email'}</Text>
               </Button>
             </View>
 
-
             {message ? (
-              <Text className="text-sm text-foreground text-center mt-2">
-                {message}
-              </Text>
+              <Text className="mt-2 text-center text-sm text-foreground">{message}</Text>
             ) : null}
           </View>
         </View>
       </>
     );
   }
-  // after sign-in
+
+  // signed-in: show your original main content
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
         <View className="flex-row gap-2">
+          <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
+            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
+          </Button>
+        </View>
+        <View className="flex-col gap-2">
+          <Button
+            onPress={() => {
+              router.push('/settings');
+            }}>
+            <Text>Go to settings</Text>
+          </Button>
           <Button
             variant="outline"
             disabled={loading}

@@ -12,7 +12,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import React, { useState, useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import FooterBar, { TabKey } from '@/app/FooterBar';
 
 export { ErrorBoundary } from 'expo-router';
@@ -24,10 +24,11 @@ export default function RootLayout() {
 
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
 
-  // Simple sync from route to activeTab
-  useEffect(() => {
-    const root = segments[0] as string | undefined;
+  // current top‑level route segment: '' or undefined means index
+  const root = (segments[0] as string | undefined) ?? '';
 
+  // sync activeTab from route
+  useEffect(() => {
     if (root === 'Dashboard') {
       setActiveTab('dashboard');
     } else if (root === 'settings') {
@@ -132,7 +133,7 @@ export default function RootLayout() {
           />
 
           <Stack.Screen
-            name="Dashboard/editPage"
+            name="index"
             options={{
               headerShown: true,
               headerTitle: '',
@@ -185,12 +186,13 @@ export default function RootLayout() {
             }}
           />
 
+          {/* Settings root (custom header inside screen) */}
           <Stack.Screen
-            name="Dashboard/index_2"
+            name="settings/index"
             options={{
-              headerShown: true,
+              headerShown: false,
               headerTitle: '',
-              headerBackVisible: false,
+              headerBackVisible: Platform.OS === 'ios',
               headerStyle: {
                 backgroundColor: '#292D32',
               },
@@ -224,43 +226,8 @@ export default function RootLayout() {
             }}
           />
 
-          <Stack.Screen
-            name="Dashboard/History"
-            options={{
-              headerShown: true,
-              headerTitle: '',
-              headerBackVisible: false,
-              headerStyle: {
-                backgroundColor: '#292D32',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              headerRight: () => (
-                <View className="mr-3 flex-row">
-                  <View className="mr-1 h-7 w-7 rounded-sm bg-white">
-                    <MaterialCommunityIcons
-                      onPress={() => router.push('/Dashboard/index_2')}
-                      name="plus"
-                      size={27}
-                      color="black"
-                    />
-                  </View>
-                </View>
-              ),
-              headerLeft: () => (
-                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                  <MaterialCommunityIcons
-                    onPress={() => router.push('/Dashboard')}
-                    name="arrow-u-left-top"
-                    size={25}
-                    color="white"
-                  />
-                </View>
-              ),
-            }}
-          />
+          {/* Dashboard screens – all use custom headers now */}
+          <Stack.Screen name="Dashboard/index" options={{ headerShown: false }} />
 
           <Stack.Screen
             name="Dashboard/ProgressDetail"
@@ -313,32 +280,22 @@ export default function RootLayout() {
               ),
             }}
           />
+          <Stack.Screen name="Dashboard/editPage" options={{ headerShown: false }} />
 
-          <Stack.Screen
-            name="Team&Member/index"
-            options={{
-              headerShown: true,
-              headerTitle: '',
-              headerBackVisible: false,
-              headerStyle: {
-                backgroundColor: '#292D32',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              headerLeft: () => (
-                <View className="bg-#292D32 mb-5 ml-3 mr-2.5 mt-5 h-7 w-7 rounded-sm border border-white">
-                  <MaterialCommunityIcons
-                    onPress={() => router.push('/')}
-                    name="arrow-u-left-top"
-                    size={25}
-                    color="white"
-                  />
-                </View>
-              ),
-            }}
-          />
+          <Stack.Screen name="Dashboard/index_2" options={{ headerShown: false }} />
+
+          <Stack.Screen name="Dashboard/History" options={{ headerShown: false }} />
+
+          <Stack.Screen name="Dashboard/ProgressDetail" options={{ headerShown: false }} />
+
+          <Stack.Screen name="Dashboard/ProgressFinalDetail" options={{ headerShown: false }} />
+
+          {/* Team & Member screens – all use custom headers now */}
+          <Stack.Screen name="Team&Member/index" options={{ headerShown: false }} />
+
+          <Stack.Screen name="Team&Member/createTeam" options={{ headerShown: false }} />
+
+          <Stack.Screen name="Team&Member/joinTeam" options={{ headerShown: false }} />
         </Stack>
 
         {/* <Stack.Screen
@@ -382,6 +339,8 @@ export default function RootLayout() {
 
         {/* Global animated footer */}
         <FooterBar activeTab={activeTab} onTabPress={handleTabPress} />
+        {/* Global animated footer – show on all pages except index */}
+        {root !== '' && <FooterBar activeTab={activeTab} onTabPress={handleTabPress} />}
       </View>
 
       <PortalHost />
