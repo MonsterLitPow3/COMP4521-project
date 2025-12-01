@@ -102,7 +102,8 @@ export default function Screen() {
       if (error) {
         setMessage(error.message);
       } else {
-        setMessage('Sign-up email sent. Check your inbox.');
+        setMessage('Sign-up email sent. Check your inbox.\nBut if you have signed up before, the email will not be sent.');
+        alert('If you have confirmed sign-up before, please sign in directly and do not sign up again.');
         setEmail('');
         setPassword('');
       }
@@ -113,11 +114,10 @@ export default function Screen() {
     }
   };
 
-  const upsertPushToken = async (session: any | null) => {
-    if (!session || !expoPushToken) return;
+  const upsertPushToken = async (session: any | null, token: string) => {
     const { error } = await supabase
       .from('profiles')
-      .upsert({ id: session.user.id, expo_push_token: expoPushToken })
+      .upsert({ id: session.user.id, expo_push_token: token })
       .select()
       .single();
     if (error) {
@@ -139,7 +139,7 @@ export default function Screen() {
         console.log('Signed in successfully');
         setEmail('');
         setPassword('');
-        await upsertPushToken(data.session);
+        await upsertPushToken(data.session, expoPushToken);
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -152,6 +152,7 @@ export default function Screen() {
     setLoading(true);
     setMessage(null);
     try {
+      await upsertPushToken(session, '');
       const { error } = await supabase.auth.signOut();
       if (error) {
         setMessage(error.message);
@@ -334,46 +335,12 @@ export default function Screen() {
       <Stack.Screen options={SCREEN_OPTIONS} />
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-        <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
-          <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
-        </Button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Card Title</CardTitle>
-            <CardDescription>Card Description</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Text>Card Content</Text>
-          </CardContent>
-          <CardFooter className="flex-col gap-2">
-            <Button className="w-full">
-              <Text>Subscribe</Text>
-            </Button>
-            <Button variant="outline" className="w-full bg-red-300">
-              <Text>Later</Text>
-            </Button>
-          </CardFooter>
-        </Card>
-        <View className="gap-2 p-4">
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            1. Edit <Text variant="code">app/index.tsx</Text> to get started.
-          </Text>
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            2. Save to see your changes instantly.
-          </Text>
+        <View className="flex-row gap-2">
+          <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
+            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
+          </Button>
         </View>
         <View className="flex-col gap-2">
-          <Link href="https://reactnativereusables.com" asChild>
-            <Button>
-              <Text>Browse the documents</Text>
-            </Button>
-          </Link>
-          <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
-            <Button variant="ghost">
-              <Text>Star the Repo</Text>
-              <Icon as={StarIcon} />
-            </Button>
-          </Link>
           <Button
             onPress={() => {
               router.push('/settings');
