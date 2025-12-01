@@ -295,7 +295,6 @@ export default function SettingsScreen() {
             </Button>
           </View>
         )}
-      </ScrollView>
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           <View style={[styles.section, { borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
@@ -306,7 +305,10 @@ export default function SettingsScreen() {
                 placeholder="••••••••"
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
               />
-              <Button disabled={loading} onPress={handleResetPassword} style={[styles.label, { color: colors.foreground }]}>
+              <Button
+                disabled={loading}
+                onPress={handleResetPassword}
+                style={[styles.label, { color: colors.foreground }]}>
                 <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
                   {loading ? 'Please wait...' : 'Reset password'}
                 </Text>
@@ -314,8 +316,7 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
-        
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
