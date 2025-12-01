@@ -20,6 +20,22 @@ import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshableScroll } from '@/components/RefreshableScroll';
 
+type MemberJson = {
+  mId: number;
+  teamId: number;
+  role: string;
+  uId: string;
+  MemberName: string;
+};
+
+type TeamRow = {
+  teamId: number;
+  name: string;
+  inviteKey?: string;
+};
+
+type TeamWithMembers = TeamRow & { members: MemberJson[] };
+
 type SubTask = {
   subTaskID?: number;
   pId: number;
@@ -28,9 +44,10 @@ type SubTask = {
   sTddlTime: string;
   Descriptions: string;
   sTStatus: number;
+  Member?: MemberJson[] | string | null;
 };
 
-type SubTaskField = keyof Omit<SubTask, 'subTaskID' | 'pId' | 'sTStatus'>;
+type SubTaskField = keyof Omit<SubTask, 'subTaskID' | 'pId' | 'sTStatus' | 'Member'>;
 
 function isValidDate(str: string) {
   const match = str.match(/^(\d{2,4})\/(\d{2})\/(\d{2})$/);
@@ -67,12 +84,74 @@ export default function EditPage() {
   const [ddlTime, setDdlTime] = useState('');
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
 
+  const [teams, setTeams] = useState<TeamWithMembers[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = isDark ? THEME.dark : THEME.light;
 
   const insets = useSafeAreaInsets();
   const headerTopPadding = Platform.OS === 'ios' ? Math.max(insets.top - 4, 0) : insets.top;
+
+  const loadTeams = useCallback(async () => {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      setTeams([]);
+      setSelectedTeamId(null);
+      return;
+    }
+
+    const { data: memberships, error: memError } = await supabase
+      .from('TeamMembers')
+      .select('teamId')
+      .eq('uId', user.id);
+
+    if (memError || !memberships || memberships.length === 0) {
+      setTeams([]);
+      setSelectedTeamId(null);
+      return;
+    }
+
+    const teamIds = memberships.map((m) => m.teamId);
+
+    const { data: teamRows } = await supabase.from('Teams').select('*').in('teamId', teamIds);
+
+    const grouped: Record<number, TeamWithMembers> = {};
+    (teamRows ?? []).forEach((t: any) => {
+      grouped[t.teamId] = {
+        teamId: t.teamId,
+        name: t.name,
+        inviteKey: t.inviteKey,
+        members: [],
+      };
+    });
+
+    // load members for all these teams
+    const { data: memberRows } = await supabase
+      .from('TeamMembers')
+      .select('*')
+      .in('teamId', teamIds);
+
+    (memberRows ?? []).forEach((m: any) => {
+      if (grouped[m.teamId]) {
+        grouped[m.teamId].members.push({
+          mId: m.mId,
+          teamId: m.teamId,
+          role: m.role,
+          uId: m.uId,
+          MemberName: m.MemberName,
+        });
+      }
+    });
+
+    const list = Object.values(grouped);
+    setTeams(list);
+    setSelectedTeamId(list.length > 0 ? list[0].teamId : null);
+  }, []);
 
   const fetchTaskAndSubTasks = useCallback(async () => {
     if (!taskID) {
@@ -98,6 +177,7 @@ export default function EditPage() {
       setTaskName(taskData.taskName || '');
       setDdlDate(taskData.ddlDate || '');
       setDdlTime(taskData.ddlTime || '');
+      if (taskData.TeamId) setSelectedTeamId(taskData.TeamId);
 
       const { data: subData, error: subError } = await supabase
         .from('subTasks')
@@ -117,6 +197,7 @@ export default function EditPage() {
             sTddlTime: st.sTddlTime,
             Descriptions: st.Descriptions,
             sTStatus: st.sTStatus,
+            Member: st.Member ?? null,
           }))
         );
       }
@@ -127,17 +208,37 @@ export default function EditPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetchTaskAndSubTasks();
-  }, [fetchTaskAndSubTasks]);
+    Promise.all([loadTeams(), fetchTaskAndSubTasks()]).then(() => setLoading(false));
+  }, [loadTeams, fetchTaskAndSubTasks]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchTaskAndSubTasks();
+    await Promise.all([loadTeams(), fetchTaskAndSubTasks()]);
     setRefreshing(false);
-  }, [fetchTaskAndSubTasks]);
+  }, [loadTeams, fetchTaskAndSubTasks]);
 
   const handleSubTaskChange = (idx: number, field: SubTaskField, value: string) => {
     setSubTasks((prev) => prev.map((st, i) => (i === idx ? { ...st, [field]: value } : st)));
+  };
+
+  const toggleSubTaskMember = (subTaskIndex: number, member: MemberJson) => {
+    setSubTasks((prev) =>
+      prev.map((st, i) => {
+        if (i !== subTaskIndex) return st;
+        let raw: any = st.Member ?? [];
+        if (typeof raw === 'string') {
+          try {
+            raw = JSON.parse(raw);
+          } catch {
+            raw = [];
+          }
+        }
+        if (!Array.isArray(raw)) raw = [];
+        const existing = raw.some((m: any) => m.mId === member.mId);
+        const updated = existing ? raw.filter((m: any) => m.mId !== member.mId) : [...raw, member];
+        return { ...st, Member: updated };
+      })
+    );
   };
 
   const addSubTaskPanel = () => {
@@ -153,6 +254,7 @@ export default function EditPage() {
         sTddlTime: '',
         Descriptions: '',
         sTStatus: 0,
+        Member: [],
       },
     ]);
   };
@@ -228,6 +330,7 @@ export default function EditPage() {
             sTddlDate: st.sTddlDate,
             sTddlTime: st.sTddlTime,
             Descriptions: st.Descriptions,
+            Member: st.Member ?? null,
           })
           .eq('subTaskID', st.subTaskID as number);
 
@@ -250,6 +353,7 @@ export default function EditPage() {
             sTddlTime: st.sTddlTime,
             Descriptions: st.Descriptions,
             sTStatus,
+            Member: st.Member ?? null,
           };
         });
 
@@ -277,6 +381,8 @@ export default function EditPage() {
       </View>
     );
   }
+
+  const selectedTeam = teams.find((t) => t.teamId === selectedTeamId) ?? null;
 
   return (
     <SafeAreaView
@@ -366,72 +472,140 @@ export default function EditPage() {
           </CardContent>
         </Card>
 
-        {subTasks.map((subTask, idx) => (
-          <View key={subTask.subTaskID ?? `new-${idx}`}>
-            <Card style={[styles.subTaskCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.subtitle, { color: colors.foreground }]}>SubTask {idx + 1}</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                value={subTask.sTName}
-                onChangeText={(v) => handleSubTaskChange(idx, 'sTName', v)}
-                placeholder="SubTask Name"
-                placeholderTextColor={colors.mutedForeground}
-              />
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                value={subTask.sTddlDate}
-                onChangeText={(v) => handleSubTaskChange(idx, 'sTddlDate', v)}
-                placeholder="Deadline Date (YY/MM/DD)"
-                placeholderTextColor={colors.mutedForeground}
-              />
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                value={subTask.sTddlTime}
-                onChangeText={(v) => handleSubTaskChange(idx, 'sTddlTime', v)}
-                placeholder="Deadline Time (HH:MM:SS)"
-                placeholderTextColor={colors.mutedForeground}
-              />
-              <TextInput
-                style={[
-                  styles.descriptionInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                  },
-                ]}
-                value={subTask.Descriptions}
-                onChangeText={(v) => handleSubTaskChange(idx, 'Descriptions', v)}
-                placeholder="Description"
-                placeholderTextColor={colors.mutedForeground}
-                multiline
-                textAlignVertical="top"
-              />
-            </Card>
-            <View style={{ marginTop: 12 }} />
-          </View>
-        ))}
+        {subTasks.map((subTask, idx) => {
+          // normalize Member to array for UI
+          let memberArray: MemberJson[] = [];
+          let raw = subTask.Member as any;
+          if (raw) {
+            if (typeof raw === 'string') {
+              try {
+                raw = JSON.parse(raw);
+              } catch {
+                raw = [];
+              }
+            }
+            if (Array.isArray(raw)) {
+              memberArray = raw as MemberJson[];
+            }
+          }
+
+          return (
+            <View key={subTask.subTaskID ?? `new-${idx}`}>
+              <Card style={[styles.subTaskCard, { backgroundColor: colors.card }]}>
+                <Text style={[styles.subtitle, { color: colors.foreground }]}>
+                  SubTask {idx + 1}
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  value={subTask.sTName}
+                  onChangeText={(v) => handleSubTaskChange(idx, 'sTName', v)}
+                  placeholder="SubTask Name"
+                  placeholderTextColor={colors.mutedForeground}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  value={subTask.sTddlDate}
+                  onChangeText={(v) => handleSubTaskChange(idx, 'sTddlDate', v)}
+                  placeholder="Deadline Date (YY/MM/DD)"
+                  placeholderTextColor={colors.mutedForeground}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  value={subTask.sTddlTime}
+                  onChangeText={(v) => handleSubTaskChange(idx, 'sTddlTime', v)}
+                  placeholder="Deadline Time (HH:MM:SS)"
+                  placeholderTextColor={colors.mutedForeground}
+                />
+                <TextInput
+                  style={[
+                    styles.descriptionInput,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  value={subTask.Descriptions}
+                  onChangeText={(v) => handleSubTaskChange(idx, 'Descriptions', v)}
+                  placeholder="Description"
+                  placeholderTextColor={colors.mutedForeground}
+                  multiline
+                  textAlignVertical="top"
+                />
+
+                {selectedTeam && (
+                  <>
+                    <Text
+                      style={{
+                        marginTop: 8,
+                        marginBottom: 4,
+                        fontWeight: '600',
+                        color: colors.foreground,
+                      }}>
+                      Assign Members
+                    </Text>
+                    {selectedTeam.members.map((m) => {
+                      const checked = memberArray.some((mm) => mm.mId === m.mId);
+                      return (
+                        <TouchableOpacity
+                          key={m.mId}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginBottom: 4,
+                          }}
+                          onPress={() => toggleSubTaskMember(idx, m)}>
+                          <View
+                            style={{
+                              width: 18,
+                              height: 18,
+                              marginRight: 8,
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: isDark ? '#ffffff' : colors.border,
+                              backgroundColor: checked
+                                ? isDark
+                                  ? '#22c55e'
+                                  : colors.primary
+                                : isDark
+                                  ? '#000000'
+                                  : colors.card,
+                            }}
+                          />
+                          <Text style={{ color: colors.foreground }}>
+                            {m.MemberName} ({m.role})
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </>
+                )}
+              </Card>
+              <View style={{ marginTop: 12 }} />
+            </View>
+          );
+        })}
 
         <View style={styles.plusButtonContainer}>
           <TouchableOpacity style={styles.plusButton} onPress={addSubTaskPanel}>

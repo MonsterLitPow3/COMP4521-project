@@ -195,17 +195,22 @@ export default function ProgressDetail() {
                   ? fullDesc.slice(0, maxDescLen).trimEnd() + '…'
                   : fullDesc;
 
+              // Build unique member name list
               let memberNames: string[] = [];
               try {
                 if (subTask.Member) {
                   let raw = subTask.Member as any;
                   if (typeof raw === 'string') raw = JSON.parse(raw);
                   if (Array.isArray(raw)) {
-                    memberNames = raw.map((m) =>
-                      typeof m === 'object' && m !== null && 'MemberName' in m
-                        ? String((m as MemberJson).MemberName)
-                        : String(m)
-                    );
+                    const unique = new Set<string>();
+                    raw.forEach((m) => {
+                      const name =
+                        typeof m === 'object' && m !== null && 'MemberName' in m
+                          ? String((m as MemberJson).MemberName)
+                          : String(m);
+                      if (name.trim()) unique.add(name);
+                    });
+                    memberNames = Array.from(unique);
                   }
                 }
               } catch {

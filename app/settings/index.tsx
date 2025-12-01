@@ -1,6 +1,14 @@
 // app/settings/index.tsx
 import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  Platform,
+  TextInput,
+} from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
@@ -91,7 +99,10 @@ export default function SettingsScreen() {
                 placeholder="••••••••"
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
               />
-              <Button disabled={loading} onPress={handleResetPassword} style={[styles.label, { color: colors.foreground }]}>
+              <Button
+                disabled={loading}
+                onPress={handleResetPassword}
+                style={[styles.label, { color: colors.foreground }]}>
                 <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
                   {loading ? 'Please wait...' : 'Reset password'}
                 </Text>
@@ -99,7 +110,6 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
-        
       </View>
     </SafeAreaView>
   );
