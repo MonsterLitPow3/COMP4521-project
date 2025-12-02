@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
+  Pressable,
   Platform,
   TextInput,
   ScrollView,
@@ -35,9 +36,12 @@ export default function SettingsScreen() {
 
   // ----- Manager state -----
   const [role, setRole] = React.useState<string | null>(null);
-  const [teamId, setTeamId] = React.useState<number | null>(null);
+  // const [teamId, setTeamId] = React.useState<number | null>(null);
   const [teamData, setTeamData] = React.useState<any>(null);
 
+  // Add state for multiple teams
+  const [teams, setTeams] = React.useState<any[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = React.useState<number | null>(null);
   const [clockInTime, setClockInTime] = React.useState(new Date());
   const [clockOutTime, setClockOutTime] = React.useState(new Date());
   const [lat, setLat] = React.useState('');
@@ -51,41 +55,82 @@ export default function SettingsScreen() {
       const user = userData?.user;
       if (!user) return;
 
-      // Look up role in TeamMembers
-      const { data: member } = await supabase
+      // Get all teams where user is leader
+      const { data: memberTeams } = await supabase
         .from('TeamMembers')
         .select('role, teamId')
-        .eq('uId', user.id)
-        .single();
+        .eq('uId', user.id);
 
-      if (!member) return;
+      if (!memberTeams) return;
 
-      setRole(member.role);
-      setTeamId(member.teamId);
+      // check if user is a leader for any team
+      const leaderTeams = memberTeams.filter((m) => m.role === 'leader');
+      setTeams(leaderTeams.map((m) => ({ teamId: m.teamId })));
+      if (leaderTeams.length > 0) setSelectedTeamId(leaderTeams[0].teamId);
 
-      // If leader → load team settings
-      if (member.role === 'leader') {
-        const { data: t } = await supabase
-          .from('Teams')
-          .select('*')
-          .eq('teamId', member.teamId)
-          .single();
-
-        if (t) {
-          setTeamData(t);
-
-          // Convert DB time strings → JS Date objects??
-          if (t.checkInTime) setClockInTime(new Date(`1970-01-01T${t.checkInTime}`));
-          if (t.checkOutTime) setClockOutTime(new Date(`1970-01-01T${t.checkOutTime}`));
-
-          if (t.locationLatitude) setLat(String(t.locationLatitude));
-          if (t.locationLongitude) setLng(String(t.locationLongitude));
-        }
+      // Optionally set role for rendering sections
+      setRole(leaderTeams.length > 0 ? 'leader' : memberTeams[0]?.role || null);
+      if (leaderTeams.length == 1) {
+        setSelectedTeamId(leaderTeams[0].teamId);
+        // setTeamId(leaderTeams[0].teamId);
       }
+      // // Look up role in TeamMembers
+      // const { data: member } = await supabase
+      //   .from('TeamMembers')
+      //   .select('role, teamId')
+      //   .eq('uId', user.id)
+      //   .single();
+
+      // if (!member) return;
+
+      // setRole(member.role);
+      // setTeamId(member.teamId);
+
+      // // If leader → load team settings
+      // if (member.role === 'leader') {
+      //   const { data: t } = await supabase
+      //     .from('Teams')
+      //     .select('*')
+      //     .eq('teamId', member.teamId)
+      //     .single();
+
+      //   if (t) {
+      //     setTeamData(t);
+
+      //     // Convert DB time strings → JS Date objects??
+      //     if (t.checkInTime) setClockInTime(new Date(`1970-01-01T${t.checkInTime}`));
+      //     if (t.checkOutTime) setClockOutTime(new Date(`1970-01-01T${t.checkOutTime}`));
+
+      //     if (t.locationLatitude) setLat(String(t.locationLatitude));
+      //     if (t.locationLongitude) setLng(String(t.locationLongitude));
+      //   }
+      // }
     }
 
     load();
   }, []);
+
+  // When selectedTeamId changes, load that team's settings
+  React.useEffect(() => {
+    if (!selectedTeamId) return;
+
+    async function loadTeamSettings() {
+      const { data: t } = await supabase
+        .from('Teams')
+        .select('*')
+        .eq('teamId', selectedTeamId)
+        .single();
+
+      if (!t) return;
+
+      setTeamData(t);
+      if (t.checkInTime) setClockInTime(new Date(`1970-01-01T${t.checkInTime}`));
+      if (t.checkOutTime) setClockOutTime(new Date(`1970-01-01T${t.checkOutTime}`));
+      if (t.locationLatitude) setLat(String(t.locationLatitude));
+      if (t.locationLongitude) setLng(String(t.locationLongitude));
+    }
+    loadTeamSettings();
+  }, [selectedTeamId]);
 
   // React.useEffect(() => {
   //   async function load() {
@@ -132,7 +177,7 @@ export default function SettingsScreen() {
           locationLatitude: latitude,
           locationLongitude: longitude,
         })
-        .eq('teamId', teamId);
+        .eq('teamId', selectedTeamId);
 
       if (error) {
         console.log('Supabase update error:', error);
@@ -153,7 +198,7 @@ export default function SettingsScreen() {
 
   // Save updated team settings
   const saveTeamSettings = async () => {
-    if (!teamId) return;
+    if (!selectedTeamId) return;
 
     const { error } = await supabase
       .from('Teams')
@@ -163,7 +208,7 @@ export default function SettingsScreen() {
         locationLatitude: parseFloat(lat),
         locationLongitude: parseFloat(lng),
       })
-      .eq('teamId', teamId);
+      .eq('teamId', selectedTeamId);
 
     if (error) alert('Error saving: ' + error.message);
     else alert('Team settings updated!');
@@ -227,7 +272,48 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Reset Password */}
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
+            <View style={styles.row}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+              />
+              <Button
+                disabled={loading}
+                onPress={handleResetPassword}
+                style={[styles.label, { color: colors.foreground }]}>
+                <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                  {loading ? 'Please wait...' : 'Reset password'}
+                </Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+
         {/* TEAM SETTINGS */}
+        {role === 'leader' && teams.length > 0 && (
+          <View style={{ marginBottom: 12 }}>
+            {teams.map((team) => {
+              const isSelected = team.teamId === selectedTeamId;
+              return (
+                <Pressable
+                  key={team.teamId}
+                  onPress={() => setSelectedTeamId(team.teamId)}
+                  className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
+                  <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
+                    Team {team.teamId}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
         {role === 'leader' && (
           <View style={[styles.section, { borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
@@ -279,27 +365,6 @@ export default function SettingsScreen() {
             </Button>
           </View>
         )}
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
-            <View style={styles.row}>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-              />
-              <Button
-                disabled={loading}
-                onPress={handleResetPassword}
-                style={[styles.label, { color: colors.foreground }]}>
-                <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-                  {loading ? 'Please wait...' : 'Reset password'}
-                </Text>
-              </Button>
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
