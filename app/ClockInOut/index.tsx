@@ -297,7 +297,7 @@ export default function ClockInOutScreen() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
-      edges={['top', 'left', 'right']}>
+      edges={['top', 'bottom', 'left', 'right']}>
       {/* HEADER */}
       <View
         style={[
@@ -317,26 +317,26 @@ export default function ClockInOutScreen() {
           <Text className="mb-4 text-2xl font-bold">Clock In/Out</Text>
           {/* !update! */}
           {!loading && location && (
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              style={{ width: '100%', height: '50%' }}
-              region={location}>
-              <Marker coordinate={location} title="You are here" />
-              {selectedTeam && selectedTeam.locationLatitude && selectedTeam.locationLongitude && (
-                <Marker
-                  coordinate={{
-                    latitude: selectedTeam.locationLatitude,
-                    longitude: selectedTeam.locationLongitude,
-                  }}
-                  pinColor="blue" // office marker color
-                  title="Office Location"
-                />
-              )}
-            </MapView>
+            <View style={{ height: 300 }}>
+              <MapView provider={PROVIDER_GOOGLE} style={{ flex: 1 }} region={location}>
+                <Marker coordinate={location} title="You are here" />
+                {selectedTeam &&
+                  selectedTeam.locationLatitude &&
+                  selectedTeam.locationLongitude && (
+                    <Marker
+                      coordinate={{
+                        latitude: selectedTeam.locationLatitude,
+                        longitude: selectedTeam.locationLongitude,
+                      }}
+                      pinColor="blue" // office marker color
+                      title="Office Location"
+                    />
+                  )}
+              </MapView>
+            </View>
           )}
 
           <Text className="text-lg">{currentTime}</Text>
-          <Text className="text-md mt-2">Teams:</Text>
           <View className="flex-row gap-2">
             <Button
               variant="outline"
@@ -354,6 +354,7 @@ export default function ClockInOutScreen() {
                 : 'Clocked Out'
               : 'No team selected'}
           </Text>
+          <Text className="text-md mt-2">Teams:</Text>
           {teams.map((team) => {
             const isSelected = team.teamId === selectedTeamId;
             return (
@@ -371,20 +372,20 @@ export default function ClockInOutScreen() {
             <View style={{ marginTop: 12 }}>
               {selectedTeam.checkInTime && (
                 <View>
-                  <Text>Check-in window: {selectedTeam.checkInTime}</Text>{' '}
+                  <Text>Check-in window: {selectedTeam.checkInTime}</Text>
                 </View>
               )}
               {selectedTeam.checkOutTime && (
                 <View>
-                  <Text>Check-out window: {selectedTeam.checkOutTime}</Text>{' '}
+                  <Text>Check-out window: {selectedTeam.checkOutTime}</Text>
                 </View>
               )}
               {selectedTeam.locationLatitude && selectedTeam.locationLongitude && (
                 <View>
                   <Text>
-                    Office location: {selectedTeam.locationLatitude},{' '}
+                    Office location: {selectedTeam.locationLatitude},
                     {selectedTeam.locationLongitude}
-                  </Text>{' '}
+                  </Text>
                 </View>
               )}
             </View>

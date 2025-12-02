@@ -66,21 +66,7 @@ export default function RootLayout() {
             }}
           />
 
-          <Stack.Screen
-            name="settings/index"
-            options={{
-              headerShown: false,
-              headerTitle: '',
-              headerBackVisible: Platform.OS === 'ios',
-              headerStyle: {
-                backgroundColor: '#292D32',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-            }}
-          />
+          <Stack.Screen name="settings/index" options={{ headerShown: false }} />
 
           <Stack.Screen name="Dashboard/index" options={{ headerShown: false }} />
 
@@ -99,6 +85,8 @@ export default function RootLayout() {
           <Stack.Screen name="Team&Member/createTeam" options={{ headerShown: false }} />
 
           <Stack.Screen name="Team&Member/joinTeam" options={{ headerShown: false }} />
+
+          <Stack.Screen name="ClockInOut/index" options={{ headerShown: false }} />
         </Stack>
 
         {root !== '' && <FooterBar activeTab={activeTab} onTabPress={handleTabPress} />}

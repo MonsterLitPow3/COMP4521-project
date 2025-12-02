@@ -2,23 +2,14 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Link, Stack, useRouter } from 'expo-router';
-import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
+import { Stack, useRouter } from 'expo-router';
+import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { Image, type ImageStyle, View, TextInput } from 'react-native';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { supabase } from '@/utils/supabase';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
-import ClockInOutScreen from './ClockInOut';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -157,24 +148,8 @@ export default function Screen() {
         setEmail('');
         setPassword('');
         await upsertPushToken(data.session, expoPushToken);
-      }
-    } catch (err: any) {
-      setMessage(err?.message ?? 'An unexpected error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      await upsertPushToken(session, '');
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        setMessage(error.message);
-      } else {
-        setMessage('Signed out successfully');
+        // optional: immediate redirect here, auth listener below will also handle redirects
+        router.replace('/ClockInOut');
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -223,6 +198,7 @@ export default function Screen() {
         setOtp('');
         setPasswordLess(false);
         await upsertPushToken(data.session, expoPushToken);
+        router.replace('/ClockInOut');
       }
     } catch (err: any) {
       setMessage(err?.message ?? 'An unexpected error occurred');
@@ -232,6 +208,13 @@ export default function Screen() {
   };
 
   const inputTextStyle = { color: isDark ? '#ffffff' : '#000000' };
+
+  // If logged in already, redirect to ClockInOut and render nothing
+  React.useEffect(() => {
+    if (session) {
+      router.replace('/ClockInOut');
+    }
+  }, [session, router]);
 
   // OTP form
   if (!session && passwordLess) {
@@ -346,29 +329,8 @@ export default function Screen() {
     );
   }
 
-  // signed-in: main content
-  return (
-    <>
-      <Stack.Screen options={SCREEN_OPTIONS} />
-      <View className="flex-1 items-center justify-center gap-8 p-4">
-        <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-        <View className="flex-row gap-2">
-          <Button variant="outline" disabled={loading} onPress={handleSignOut} className="flex-1">
-            <Text>{loading ? 'Please wait...' : 'Sign Out'}</Text>
-          </Button>
-        </View>
-        <View className="flex-col gap-2">
-          <Button
-            onPress={() => {
-              router.push('/settings');
-            }}>
-            <Text>Go to settings</Text>
-          </Button>
-        </View>
-        <ClockInOutScreen />
-      </View>
-    </>
-  );
+  // while session is redirecting, render nothing
+  return null;
 }
 
 const THEME_ICONS = {
