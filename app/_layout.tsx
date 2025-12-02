@@ -35,8 +35,7 @@ export default function RootLayout() {
       setActiveTab('settings');
     } else if (root === 'Team&Member') {
       setActiveTab('user');
-    } else if (root === undefined || root === '' || root === 'ClockInOut') {
-      // } else if (root === '' || root === undefined) {
+    } else if (root === '' || root === undefined) {
       // home/clock‑in‑out route
       setActiveTab('clock');
     }
@@ -45,7 +44,7 @@ export default function RootLayout() {
   const handleTabPress = (key: TabKey) => {
     setActiveTab(key);
     if (key === 'clock') {
-      router.push('/ClockInOut'); //
+      router.push('/');
     } else if (key === 'dashboard') {
       router.push('/Dashboard');
     } else if (key === 'user') {

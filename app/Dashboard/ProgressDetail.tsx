@@ -46,6 +46,7 @@ function getDeadline(dateStr: string, timeStr: string) {
 export default function ProgressDetail() {
   const { taskID, canEdit } = useLocalSearchParams<{ taskID: string; canEdit?: string }>();
   const router = useRouter();
+
   const [subTasks, setSubTasks] = useState<SubTaskType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -195,22 +196,17 @@ export default function ProgressDetail() {
                   ? fullDesc.slice(0, maxDescLen).trimEnd() + '…'
                   : fullDesc;
 
-              // Build unique member name list
               let memberNames: string[] = [];
               try {
                 if (subTask.Member) {
                   let raw = subTask.Member as any;
                   if (typeof raw === 'string') raw = JSON.parse(raw);
                   if (Array.isArray(raw)) {
-                    const unique = new Set<string>();
-                    raw.forEach((m) => {
-                      const name =
-                        typeof m === 'object' && m !== null && 'MemberName' in m
-                          ? String((m as MemberJson).MemberName)
-                          : String(m);
-                      if (name.trim()) unique.add(name);
-                    });
-                    memberNames = Array.from(unique);
+                    memberNames = raw.map((m) =>
+                      typeof m === 'object' && m !== null && 'MemberName' in m
+                        ? String((m as MemberJson).MemberName)
+                        : String(m)
+                    );
                   }
                 }
               } catch {
