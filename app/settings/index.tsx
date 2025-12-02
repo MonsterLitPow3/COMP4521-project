@@ -214,6 +214,10 @@ export default function SettingsScreen() {
 
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [signOutLoading, setSignOutLoading] = React.useState(false);
+  const [signOutMessage, setSignOutMessage] = React.useState<string | null>(null);
+  const [pickClockInTime, setPickClockInTime] = React.useState(false);
+  const [pickClockOutTime, setPickClockOutTime] = React.useState(false);
 
   const handleResetPassword = async () => {
     try {
@@ -235,11 +239,30 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSignOut = async () => {
+    setSignOutLoading(true);
+    setSignOutMessage(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setSignOutMessage(error.message);
+      } else {
+        // After logout, go back to auth (index)
+        router.replace('/');
+      }
+    } catch (err: any) {
+      setSignOutMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setSignOutLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={['top', 'left', 'right']}>
       <View style={styles.screen}>
+        {/* Header */}
         <View
           style={[
             styles.headerContainer,
@@ -328,21 +351,46 @@ export default function SettingsScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
                   Team Clock-in Settings
                 </Text>
-
                 <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
-                <DateTimePicker
+                {/* TIME PICKERS */}
+                <Button style={{ marginTop: 16 }} onPress={() => setPickClockInTime(true)}>
+                  <Text style={[styles.label, { color: colors.background }]}>Clock-in Time</Text>
+                </Button>
+                {pickClockInTime && (
+                  <DateTimePicker
+                    mode="time"
+                    value={clockInTime}
+                    onChange={(e, t) => {
+                      if (t) setClockInTime(t);
+                      setPickClockInTime(false);
+                    }}
+                  />
+                )}
+                <Button style={{ marginTop: 16 }} onPress={() => setPickClockOutTime(true)}>
+                  <Text style={[styles.label, { color: colors.background }]}>Clock-out Time</Text>
+                </Button>
+                {pickClockOutTime && (
+                  <DateTimePicker
+                    mode="time"
+                    value={clockOutTime}
+                    onChange={(e, t) => {
+                      if (t) setClockOutTime(t);
+                      setPickClockOutTime(false);
+                    }}
+                  />
+                )}
+                {/* CLOCK IN */}
+                {/* <DateTimePicker
                   mode="time"
                   value={clockInTime}
                   onChange={(e, t) => t && setClockInTime(t)}
                 />
-
                 <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
                 <DateTimePicker
                   mode="time"
                   value={clockOutTime}
                   onChange={(e, t) => t && setClockOutTime(t)}
-                />
-
+                /> */}
                 {/* MAP */}
                 <View style={{ height: 220, marginVertical: 12 }}>
                   <MapView
@@ -364,18 +412,30 @@ export default function SettingsScreen() {
                     )}
                   </MapView>
                 </View>
-
                 <Button onPress={setCurrentLocationAsOffice}>
-                  <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                  <Text style={[styles.label, { color: colors.background }]}>
                     Use current location as office
                   </Text>
                 </Button>
-
                 <Button className="mt-4" onPress={saveTeamSettings}>
-                  <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-                    Save Settings
-                  </Text>
+                  <Text style={[styles.label, { color: colors.background }]}>Save Settings</Text>
                 </Button>
+                <View style={[styles.section, { borderColor: colors.border }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Account</Text>
+                  <View style={styles.row}>
+                    <Text style={[styles.label, { color: colors.foreground }]}>Sign out</Text>
+                    <Button variant="outline" disabled={signOutLoading} onPress={handleSignOut}>
+                      <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                        {signOutLoading ? 'Please wait...' : 'Sign Out'}
+                      </Text>
+                    </Button>
+                  </View>
+                  {signOutMessage ? (
+                    <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                      {signOutMessage}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             </View>
           )}

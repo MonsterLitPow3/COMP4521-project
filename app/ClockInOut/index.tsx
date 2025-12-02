@@ -211,7 +211,7 @@ export default function ClockInOutScreen() {
       const team = teams.find((team) => team.teamId === selectedTeamId);
 
       // 1. Distance calculation
-      if (location && team) {
+      if (location && team && team.locationLatitude && team.locationLongitude) {
         const distance = getDistanceMeters(
           location?.latitude,
           location?.longitude,
@@ -246,21 +246,24 @@ export default function ClockInOutScreen() {
         );
 
         const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        // 2. Parse team time
-        const [ciH, ciM] = selectedTeam.checkInTime.split(':').map(Number);
-        const [coH, coM] = selectedTeam.checkOutTime.split(':').map(Number);
-
-        const ciMinutes = ciH * 60 + ciM;
-        const coMinutes = coH * 60 + coM;
-
         let onTime = true;
-        if (!clockInStatus) {
-          // user is clocking IN now
-          onTime = nowMinutes <= ciMinutes;
-        } else {
-          // user is clocking OUT now
-          onTime = nowMinutes >= coMinutes;
+
+        if (selectedTeam && selectedTeam.checkInTime && selectedTeam.checkOutTime) {
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          // 2. Parse team time
+          const [ciH, ciM] = selectedTeam?.checkInTime.split(':').map(Number);
+          const [coH, coM] = selectedTeam?.checkOutTime.split(':').map(Number);
+
+          const ciMinutes = ciH * 60 + ciM;
+          const coMinutes = coH * 60 + coM;
+
+          if (!clockInStatus) {
+            // user is clocking IN now
+            onTime = nowMinutes <= ciMinutes;
+          } else {
+            // user is clocking OUT now
+            onTime = nowMinutes >= coMinutes;
+          }
         }
 
         // insert clock-in/out record
@@ -319,7 +322,7 @@ export default function ClockInOutScreen() {
               style={{ width: '100%', height: '50%' }}
               region={location}>
               <Marker coordinate={location} title="You are here" />
-              {selectedTeam && (
+              {selectedTeam && selectedTeam.locationLatitude && selectedTeam.locationLongitude && (
                 <Marker
                   coordinate={{
                     latitude: selectedTeam.locationLatitude,
@@ -366,11 +369,24 @@ export default function ClockInOutScreen() {
           })}
           {selectedTeam && (
             <View style={{ marginTop: 12 }}>
-              <Text>Check-in window: {selectedTeam.checkInTime}</Text>
-              <Text>Check-out window: {selectedTeam.checkOutTime}</Text>
-              <Text>
-                Office location: {selectedTeam.locationLatitude}, {selectedTeam.locationLongitude}
-              </Text>
+              {selectedTeam.checkInTime && (
+                <View>
+                  <Text>Check-in window: {selectedTeam.checkInTime}</Text>{' '}
+                </View>
+              )}
+              {selectedTeam.checkOutTime && (
+                <View>
+                  <Text>Check-out window: {selectedTeam.checkOutTime}</Text>{' '}
+                </View>
+              )}
+              {selectedTeam.locationLatitude && selectedTeam.locationLongitude && (
+                <View>
+                  <Text>
+                    Office location: {selectedTeam.locationLatitude},{' '}
+                    {selectedTeam.locationLongitude}
+                  </Text>{' '}
+                </View>
+              )}
             </View>
           )}
         </View>
