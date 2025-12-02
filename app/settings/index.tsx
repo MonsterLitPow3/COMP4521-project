@@ -300,72 +300,83 @@ export default function SettingsScreen() {
 
           {/* TEAM SETTINGS */}
           {role === 'leader' && teams.length > 0 && (
-            <View style={{ marginBottom: 12 }}>
-              {teams.map((team) => {
-                const isSelected = team.teamId === selectedTeamId;
-                return (
-                  <Pressable
-                    key={team.teamId}
-                    onPress={() => setSelectedTeamId(team.teamId)}
-                    className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
-                    <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
-                      Team {team.teamId}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+              <View style={[styles.section, { borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Choose Team to Manage
+                </Text>
+                {teams.map((team) => {
+                  const isSelected = team.teamId === selectedTeamId;
+                  return (
+                    <Pressable
+                      key={team.teamId}
+                      onPress={() => setSelectedTeamId(team.teamId)}
+                      className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
+                      <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
+                        Team {team.teamId}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           )}
 
           {role === 'leader' && (
-            <View style={[styles.section, { borderColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Team Clock-in Settings
-              </Text>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+              <View style={[styles.section, { borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Team Clock-in Settings
+                </Text>
 
-              <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
-              <DateTimePicker
-                mode="time"
-                value={clockInTime}
-                onChange={(e, t) => t && setClockInTime(t)}
-              />
+                <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
+                <DateTimePicker
+                  mode="time"
+                  value={clockInTime}
+                  onChange={(e, t) => t && setClockInTime(t)}
+                />
 
-              <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
-              <DateTimePicker
-                mode="time"
-                value={clockOutTime}
-                onChange={(e, t) => t && setClockOutTime(t)}
-              />
+                <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
+                <DateTimePicker
+                  mode="time"
+                  value={clockOutTime}
+                  onChange={(e, t) => t && setClockOutTime(t)}
+                />
 
-              {/* MAP */}
-              <View style={{ height: 220, marginVertical: 12 }}>
-                <MapView
-                  style={{ flex: 1, borderRadius: 12 }}
-                  region={{
-                    latitude: Number(teamData?.locationLatitude) || 22.3027,
-                    longitude: Number(teamData?.locationLongitude) || 114.1772,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}>
-                  {teamData?.locationLatitude && (
-                    <Marker
-                      coordinate={{
-                        latitude: Number(teamData.locationLatitude),
-                        longitude: Number(teamData.locationLongitude),
-                      }}
-                      title="Office Location"
-                    />
-                  )}
-                </MapView>
+                {/* MAP */}
+                <View style={{ height: 220, marginVertical: 12 }}>
+                  <MapView
+                    style={{ flex: 1, borderRadius: 12 }}
+                    region={{
+                      latitude: Number(teamData?.locationLatitude) || 22.3027,
+                      longitude: Number(teamData?.locationLongitude) || 114.1772,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }}>
+                    {teamData?.locationLatitude && (
+                      <Marker
+                        coordinate={{
+                          latitude: Number(teamData.locationLatitude),
+                          longitude: Number(teamData.locationLongitude),
+                        }}
+                        title="Office Location"
+                      />
+                    )}
+                  </MapView>
+                </View>
+
+                <Button onPress={setCurrentLocationAsOffice}>
+                  <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                    Use current location as office
+                  </Text>
+                </Button>
+
+                <Button className="mt-4" onPress={saveTeamSettings}>
+                  <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                    Save Settings
+                  </Text>
+                </Button>
               </View>
-
-              <Button onPress={setCurrentLocationAsOffice}>
-                <Text>Use current location as office</Text>
-              </Button>
-
-              <Button className="mt-4" onPress={saveTeamSettings}>
-                <Text>Save Settings</Text>
-              </Button>
             </View>
           )}
         </ScrollView>
