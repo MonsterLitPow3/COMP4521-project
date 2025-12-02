@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   Switch,
+  ScrollView,
   TouchableOpacity,
   Pressable,
   Platform,
@@ -17,6 +18,9 @@ import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -252,118 +256,120 @@ export default function SettingsScreen() {
           <View style={styles.headerRight} />
         </View>
 
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
+        <ScrollView>
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.section, { borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
 
-            <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
-              <Switch
-                value={isDark}
-                onValueChange={toggleColorScheme}
-                thumbColor={isDark ? '#f9fafb' : '#111827'}
-                trackColor={{ false: '#d1d5db', true: '#4b5563' }}
-              />
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
+                <Switch
+                  value={isDark}
+                  onValueChange={toggleColorScheme}
+                  thumbColor={isDark ? '#f9fafb' : '#111827'}
+                  trackColor={{ false: '#d1d5db', true: '#4b5563' }}
+                />
+              </View>
+              <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                Toggle between light and dark themes. This will affect dashboard and other screens.
+              </Text>
             </View>
-            <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-              Toggle between light and dark themes. This will affect dashboard and other screens.
-            </Text>
           </View>
-        </View>
 
-        {/* Reset Password */}
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
-            <View style={styles.row}>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                secureTextEntry
-                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-                placeholderTextColor={colors.mutedForeground}
+          {/* Reset Password */}
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.section, { borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Password</Text>
+              <View style={styles.row}>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+                <Button disabled={loading} onPress={handleResetPassword}>
+                  <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                    {loading ? 'Please wait...' : 'Reset password'}
+                  </Text>
+                </Button>
+              </View>
+            </View>
+          </View>
+
+          {/* TEAM SETTINGS */}
+          {role === 'leader' && teams.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              {teams.map((team) => {
+                const isSelected = team.teamId === selectedTeamId;
+                return (
+                  <Pressable
+                    key={team.teamId}
+                    onPress={() => setSelectedTeamId(team.teamId)}
+                    className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
+                    <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
+                      Team {team.teamId}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          {role === 'leader' && (
+            <View style={[styles.section, { borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Team Clock-in Settings
+              </Text>
+
+              <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
+              <DateTimePicker
+                mode="time"
+                value={clockInTime}
+                onChange={(e, t) => t && setClockInTime(t)}
               />
-              <Button disabled={loading} onPress={handleResetPassword}>
-                <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-                  {loading ? 'Please wait...' : 'Reset password'}
-                </Text>
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
+              <DateTimePicker
+                mode="time"
+                value={clockOutTime}
+                onChange={(e, t) => t && setClockOutTime(t)}
+              />
+
+              {/* MAP */}
+              <View style={{ height: 220, marginVertical: 12 }}>
+                <MapView
+                  style={{ flex: 1, borderRadius: 12 }}
+                  region={{
+                    latitude: Number(teamData?.locationLatitude) || 22.3027,
+                    longitude: Number(teamData?.locationLongitude) || 114.1772,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}>
+                  {teamData?.locationLatitude && (
+                    <Marker
+                      coordinate={{
+                        latitude: Number(teamData.locationLatitude),
+                        longitude: Number(teamData.locationLongitude),
+                      }}
+                      title="Office Location"
+                    />
+                  )}
+                </MapView>
+              </View>
+
+              <Button onPress={setCurrentLocationAsOffice}>
+                <Text>Use current location as office</Text>
+              </Button>
+
+              <Button className="mt-4" onPress={saveTeamSettings}>
+                <Text>Save Settings</Text>
               </Button>
             </View>
-          </View>
-        </View>
-
-        {/* TEAM SETTINGS */}
-        {role === 'leader' && teams.length > 0 && (
-          <View style={{ marginBottom: 12 }}>
-            {teams.map((team) => {
-              const isSelected = team.teamId === selectedTeamId;
-              return (
-                <Pressable
-                  key={team.teamId}
-                  onPress={() => setSelectedTeamId(team.teamId)}
-                  className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
-                  <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
-                    Team {team.teamId}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
-
-        {role === 'leader' && (
-          <View style={[styles.section, { borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-              Team Clock-in Settings
-            </Text>
-
-            <Text style={[styles.label, { marginTop: 8 }]}>Clock-in Time</Text>
-            <DateTimePicker
-              mode="time"
-              value={clockInTime}
-              onChange={(e, t) => t && setClockInTime(t)}
-            />
-
-            <Text style={[styles.label, { marginTop: 16 }]}>Clock-out Time</Text>
-            <DateTimePicker
-              mode="time"
-              value={clockOutTime}
-              onChange={(e, t) => t && setClockOutTime(t)}
-            />
-
-            {/* MAP */}
-            <View style={{ height: 220, marginVertical: 12 }}>
-              <MapView
-                style={{ flex: 1, borderRadius: 12 }}
-                region={{
-                  latitude: Number(teamData?.locationLatitude) || 22.3027,
-                  longitude: Number(teamData?.locationLongitude) || 114.1772,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}>
-                {teamData?.locationLatitude && (
-                  <Marker
-                    coordinate={{
-                      latitude: Number(teamData.locationLatitude),
-                      longitude: Number(teamData.locationLongitude),
-                    }}
-                    title="Office Location"
-                  />
-                )}
-              </MapView>
-            </View>
-
-            <Button onPress={setCurrentLocationAsOffice}>
-              <Text>Use current location as office</Text>
-            </Button>
-
-            <Button className="mt-4" onPress={saveTeamSettings}>
-              <Text>Save Settings</Text>
-            </Button>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
