@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Link, Stack, useRouter } from 'expo-router';
-import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
+import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { Image, type ImageStyle, View, TextInput } from 'react-native';
@@ -18,7 +18,7 @@ import {
 import { supabase } from '@/utils/supabase';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/utils/registerForPushNotificationsAsync';
-import ClockInOutScreen from './ClockInOut';
+// import ClockInOutScreen from './ClockInOut';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -105,6 +105,18 @@ export default function Screen() {
       responseListener.remove();
     };
   }, []);
+
+  const upsertPushToken = async (session: any | null, token: string) => {
+    if (!session?.user) return;
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id, expo_push_token: token })
+      .select()
+      .single();
+    if (error) {
+      console.log('Error upserting push token:', error.message);
+    }
+  };
 
   const upsertPushToken = async (session: any | null, token: string) => {
     if (!session?.user) return;
@@ -222,6 +234,7 @@ export default function Screen() {
         setEmail('');
         setOtp('');
         setPasswordLess(false);
+        await upsertPushToken(data.session, expoPushToken);
         await upsertPushToken(data.session, expoPushToken);
       }
     } catch (err: any) {
@@ -347,6 +360,7 @@ export default function Screen() {
   }
 
   // signed-in: main content
+  // signed-in: main content
   return (
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
@@ -365,7 +379,7 @@ export default function Screen() {
             <Text>Go to settings</Text>
           </Button>
         </View>
-        <ClockInOutScreen />
+        {/* <ClockInOutScreen /> */}
       </View>
     </>
   );

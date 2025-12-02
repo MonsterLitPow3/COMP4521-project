@@ -125,7 +125,9 @@ export default function DashBoard() {
             },
           ]}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => router.push('/')} style={styles.headerBackButton}>
+            <TouchableOpacity
+              onPress={() => router.push('/Dashboard')}
+              style={styles.headerBackButton}>
               <AntDesign name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
           </View>

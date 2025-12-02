@@ -66,21 +66,7 @@ export default function RootLayout() {
             }}
           />
 
-          <Stack.Screen
-            name="settings/index"
-            options={{
-              headerShown: false,
-              headerTitle: '',
-              headerBackVisible: Platform.OS === 'ios',
-              headerStyle: {
-                backgroundColor: '#292D32',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-            }}
-          />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
 
           <Stack.Screen name="Dashboard/index" options={{ headerShown: false }} />
 
