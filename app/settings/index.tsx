@@ -63,7 +63,19 @@ export default function SettingsScreen() {
 
       // check if user is a leader for any team
       const leaderTeams = memberTeams.filter((m) => m.role === 'leader');
-      setTeams(leaderTeams.map((m) => ({ teamId: m.teamId })));
+      // setTeams(leaderTeams.map((m) => ({ teamId: m.teamId })));
+
+      // Fetch team name for each teamId
+      const teamIds = leaderTeams.map((m) => m.teamId);
+
+      // Fetch only teamId + name
+      const { data: teamNames } = await supabase
+        .from('Teams')
+        .select('teamId, name')
+        .in('teamId', teamIds);
+
+      setTeams(teamNames || []);
+
       if (leaderTeams.length > 0) setSelectedTeamId(leaderTeams[0].teamId);
 
       // Optionally set role for rendering sections
@@ -72,37 +84,6 @@ export default function SettingsScreen() {
         setSelectedTeamId(leaderTeams[0].teamId);
         // setTeamId(leaderTeams[0].teamId);
       }
-      // // Look up role in TeamMembers
-      // const { data: member } = await supabase
-      //   .from('TeamMembers')
-      //   .select('role, teamId')
-      //   .eq('uId', user.id)
-      //   .single();
-
-      // if (!member) return;
-
-      // setRole(member.role);
-      // setTeamId(member.teamId);
-
-      // // If leader → load team settings
-      // if (member.role === 'leader') {
-      //   const { data: t } = await supabase
-      //     .from('Teams')
-      //     .select('*')
-      //     .eq('teamId', member.teamId)
-      //     .single();
-
-      //   if (t) {
-      //     setTeamData(t);
-
-      //     // Convert DB time strings → JS Date objects??
-      //     if (t.checkInTime) setClockInTime(new Date(`1970-01-01T${t.checkInTime}`));
-      //     if (t.checkOutTime) setClockOutTime(new Date(`1970-01-01T${t.checkOutTime}`));
-
-      //     if (t.locationLatitude) setLat(String(t.locationLatitude));
-      //     if (t.locationLongitude) setLng(String(t.locationLongitude));
-      //   }
-      // }
     }
 
     load();
@@ -336,7 +317,7 @@ export default function SettingsScreen() {
                       onPress={() => setSelectedTeamId(team.teamId)}
                       className={`my-1 w-full rounded p-2 ${isSelected ? 'bg-blue-500' : 'bg-gray-200'}`}>
                       <Text className={`text-sm ${isSelected ? 'text-white' : 'text-black'}`}>
-                        Team {team.teamId}
+                        Team {team.teamId}: {team.name}
                       </Text>
                     </Pressable>
                   );
@@ -379,7 +360,7 @@ export default function SettingsScreen() {
                     }}
                   />
                 )}
-                {/* CLOCK IN */}
+
                 {/* <DateTimePicker
                   mode="time"
                   value={clockInTime}
@@ -391,6 +372,7 @@ export default function SettingsScreen() {
                   value={clockOutTime}
                   onChange={(e, t) => t && setClockOutTime(t)}
                 /> */}
+
                 {/* MAP */}
                 <View style={{ height: 220, marginVertical: 12 }}>
                   <MapView

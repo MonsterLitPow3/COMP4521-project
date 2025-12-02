@@ -12,6 +12,7 @@ import {
   Pressable,
   TouchableOpacity,
   Platform,
+  RefreshControl,
   StyleSheet,
   ScrollView,
 } from 'react-native';
@@ -124,6 +125,21 @@ export default function ClockInOutScreen() {
     return teams.find((t) => t.teamId === selectedTeamId) || null;
   }, [selectedTeamId, teams]);
 
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    try {
+      setRefreshing(true);
+
+      // Re-fetch the teams data
+      await getUserTeams(user.id); // async function
+    } catch (e) {
+      console.log('Refresh error:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (selectedTeamId === null) {
       setClockInStatus(null);
@@ -172,32 +188,30 @@ export default function ClockInOutScreen() {
 
   // !update! location fetching
   React.useEffect(() => {
-    const fetchLocation = async () => {
-      try {
-        // Request permission
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('Permission denied');
-          setLoading(false);
-          return;
+    let subscriber;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      subscriber = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Highest,
+          timeInterval: 1000, // update every 1s
+          distanceInterval: 1, // or every 1 meter
+        },
+        (pos) => {
+          setLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            latitudeDelta: 0.002,
+            longitudeDelta: 0.002,
+          });
         }
+      );
+    })();
 
-        // Get location
-        let current = await Location.getCurrentPositionAsync({});
-        setLocation({
-          latitude: current.coords.latitude,
-          longitude: current.coords.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      } catch (e) {
-        console.log('Location error:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLocation();
+    return () => subscriber?.remove();
   }, []);
 
   const handleClockInOut = async () => {
@@ -209,7 +223,7 @@ export default function ClockInOutScreen() {
         return;
       }
       const team = teams.find((team) => team.teamId === selectedTeamId);
-
+      let withinLocation = true;
       // 1. Distance calculation
       if (location && team && team.locationLatitude && team.locationLongitude) {
         const distance = getDistanceMeters(
@@ -219,72 +233,72 @@ export default function ClockInOutScreen() {
           team.locationLongitude
         );
 
-        const withinLocation = distance <= 50;
-        if (!withinLocation && clockInStatus) {
-          alert('Not within the required location to clock in.');
-          setLoading(false);
-          return;
-        }
+        withinLocation = distance <= 50;
       }
-
-      const { data, error } = await supabase
-        .from('TeamMembers')
-        .update({ ClockInStatus: !clockInStatus })
-        .eq('uId', user.id)
-        .eq('teamId', selectedTeamId)
-        .select();
-
-      if (error) {
-        console.error('Error updating clock-in status:', error);
+      if (!withinLocation) {
+        alert('Not within the required location to clock in/out.');
+        setLoading(false);
+        return;
       } else {
-        console.log('Clock-in status updated:', data);
-        setClockInStatus(!clockInStatus);
-        setTeams((prevTeams) =>
-          prevTeams.map((team) =>
-            team.teamId === selectedTeamId ? { ...team, ClockInStatus: !clockInStatus } : team
-          )
-        );
+        const { data, error } = await supabase
+          .from('TeamMembers')
+          .update({ ClockInStatus: !clockInStatus })
+          .eq('uId', user.id)
+          .eq('teamId', selectedTeamId)
+          .select();
 
-        const now = new Date();
-        let onTime = true;
-
-        if (selectedTeam && selectedTeam.checkInTime && selectedTeam.checkOutTime) {
-          const nowMinutes = now.getHours() * 60 + now.getMinutes();
-          // 2. Parse team time
-          const [ciH, ciM] = selectedTeam?.checkInTime.split(':').map(Number);
-          const [coH, coM] = selectedTeam?.checkOutTime.split(':').map(Number);
-
-          const ciMinutes = ciH * 60 + ciM;
-          const coMinutes = coH * 60 + coM;
-
-          if (!clockInStatus) {
-            // user is clocking IN now
-            onTime = nowMinutes <= ciMinutes;
-          } else {
-            // user is clocking OUT now
-            onTime = nowMinutes >= coMinutes;
-          }
-        }
-
-        // insert clock-in/out record
-        const { data: recordData, error: recordError } = await supabase
-          .from('ClockInOutRecords')
-          .insert([
-            {
-              mId: team?.mId,
-              teamId: selectedTeamId,
-              timestamp: now.toISOString(),
-              inOut: !clockInStatus ? 'IN' : 'OUT',
-              locationLatitude: location?.latitude ?? null, // !update! to store location
-              locationLongitude: location?.latitude ?? null,
-              onTime: onTime,
-            },
-          ]);
-
-        if (recordError) {
-          console.error('Error inserting clock-in/out record:', recordError);
+        if (error) {
+          console.error('Error updating clock-in status:', error);
         } else {
-          console.log('Clock-in/out record inserted:', recordData);
+          console.log('Clock-in status updated:', data);
+          setClockInStatus(!clockInStatus);
+          setTeams((prevTeams) =>
+            prevTeams.map((team) =>
+              team.teamId === selectedTeamId ? { ...team, ClockInStatus: !clockInStatus } : team
+            )
+          );
+
+          const now = new Date();
+          let onTime = true;
+
+          if (selectedTeam && selectedTeam.checkInTime && selectedTeam.checkOutTime) {
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+            // 2. Parse team time
+            const [ciH, ciM] = selectedTeam?.checkInTime.split(':').map(Number);
+            const [coH, coM] = selectedTeam?.checkOutTime.split(':').map(Number);
+
+            const ciMinutes = ciH * 60 + ciM;
+            const coMinutes = coH * 60 + coM;
+
+            if (!clockInStatus) {
+              // user is clocking IN now
+              onTime = nowMinutes <= ciMinutes;
+            } else {
+              // user is clocking OUT now
+              onTime = nowMinutes >= coMinutes;
+            }
+          }
+
+          // insert clock-in/out record
+          const { data: recordData, error: recordError } = await supabase
+            .from('ClockInOutRecords')
+            .insert([
+              {
+                mId: team?.mId,
+                teamId: selectedTeamId,
+                timestamp: now.toISOString(),
+                inOut: !clockInStatus ? 'IN' : 'OUT',
+                locationLatitude: location?.latitude ?? null, // !update! to store location
+                locationLongitude: location?.latitude ?? null,
+                onTime: onTime,
+              },
+            ]);
+
+          if (recordError) {
+            console.error('Error inserting clock-in/out record:', recordError);
+          } else {
+            console.log('Clock-in/out record inserted:', recordData);
+          }
         }
       }
     } catch (err) {
@@ -311,8 +325,19 @@ export default function ClockInOutScreen() {
         <Text style={styles.headerTitleText}>Clock In/Out</Text>
         <View style={{ width: 32 }} />
       </View>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 40,
+          backgroundColor: colors.background,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }>
         <View style={[styles.section, { borderColor: colors.border }]}>
           <Text className="mb-4 text-2xl font-bold">Clock In/Out</Text>
           {/* !update! */}
