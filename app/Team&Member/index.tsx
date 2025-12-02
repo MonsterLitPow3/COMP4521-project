@@ -16,6 +16,81 @@ import { useColorScheme } from 'nativewind';
 import { THEME } from '@/lib/theme';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { writeAsStringAsync, EncodingType, cacheDirectory } from 'expo-file-system/legacy';
+
+async function fetchClockRecords(teamId: number) {
+  const { data, error } = await supabase
+    .from('ClockInOutRecords')
+    .select(
+      `
+      clockId,
+      mId,
+      teamId,
+      timestamp,
+      inOut,
+      locationLatitude,
+      locationLongitude,
+      onTime,
+      TeamMembers ( MemberName )
+    `
+    )
+    .eq('teamId', teamId);
+
+  if (error) {
+    console.error('Error fetching clock records:', error);
+    return [];
+  }
+
+  return data;
+}
+
+function convertToCSV(records: any[]) {
+  const header = [
+    'Clock ID',
+    // 'Team Name',
+    'Member ID',
+    'Member Name',
+    'In/Out',
+    'Timestamp',
+    'Latitude',
+    'Longitude',
+    'On Time',
+  ];
+
+  const rows = records.map((r) => [
+    r.clockId,
+    // r.Teams?.name ?? '',
+    r.mId,
+    r.TeamMembers?.MemberName ?? '',
+    r.inOut,
+    r.timestamp,
+    r.locationLatitude,
+    r.locationLongitude,
+    r.onTime,
+  ]);
+
+  return [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+}
+
+async function saveAndShareCSV(teamName: string, csv: string) {
+  // append current date-time to filename
+  const date = new Date();
+  const timestamp = date.toISOString().replace(/[:.-]/g, '');
+  const fileName = `${teamName.replace(/ /g, '_')}_ClockRecords_${timestamp}.csv`;
+  const fileUri = cacheDirectory + fileName;
+
+  // Write using the legacy-safe method
+  await writeAsStringAsync(fileUri, csv, { encoding: EncodingType.UTF8 });
+
+  if (!(await Sharing.isAvailableAsync())) {
+    alert('Sharing not available on this device.');
+    return;
+  }
+
+  await Sharing.shareAsync(fileUri);
+}
 
 type TeamRow = {
   teamId: number;
@@ -99,6 +174,20 @@ export default function TeamAndMemberIndex() {
     setRefreshing(false);
   }, [loadMyTeams]);
 
+  const handleExport = async (teamId: number, teamName: string) => {
+    console.log('typeof teamId:', typeof teamId, 'value:', teamId);
+
+    const records = await fetchClockRecords(teamId);
+
+    if (!records || records.length === 0) {
+      alert('No clock records found for this team.');
+      return;
+    }
+
+    const csv = convertToCSV(records);
+    await saveAndShareCSV(teamName, csv);
+  };
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -164,6 +253,16 @@ export default function TeamAndMemberIndex() {
             <View key={team.teamId} style={styles.teamCard}>
               <Text style={styles.teamName}>{team.name}</Text>
               <Text style={styles.inviteKey}>Invite key: {team.inviteKey}</Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#3b82f6',
+                  padding: 8,
+                  borderRadius: 6,
+                  marginTop: 6,
+                }}
+                onPress={() => handleExport(team.teamId, team.name)}>
+                <Text style={{ color: 'white', textAlign: 'center' }}>Export Clock In/Out CSV</Text>
+              </TouchableOpacity>
 
               <Text style={styles.membersTitle}>Members</Text>
               {team.members.length === 0 && (
