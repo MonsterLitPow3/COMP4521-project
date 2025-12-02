@@ -218,7 +218,6 @@ export default function TeamAndMemberIndex() {
           </TouchableOpacity>
         </View>
       </View>
-
       <ScrollView
         contentContainerStyle={{
           padding: 16,

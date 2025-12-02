@@ -16,9 +16,6 @@ import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -27,20 +24,8 @@ export default function SettingsScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
   const headerTopPadding = Platform.OS === 'ios' ? Math.max(insets.top - 6, 0) : insets.top;
 
-  // ----- Manager state -----
-  const [role, setRole] = React.useState<string | null>(null);
-  const [teamId, setTeamId] = React.useState<number | null>(null);
-  const [teamData, setTeamData] = React.useState<any>(null);
-
-  const [clockInTime, setClockInTime] = React.useState(new Date());
-  const [clockOutTime, setClockOutTime] = React.useState(new Date());
-  const [lat, setLat] = React.useState('');
-  const [lng, setLng] = React.useState('');
-
-  // password reset
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
@@ -147,17 +132,33 @@ export default function SettingsScreen() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) throw new Error('No user logged in');
 
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+
       alert('Password updated successfully');
-    } catch (error: any) {
-      alert('Error updating password: ' + error.message);
+    } catch (err: any) {
+      alert('Error updating password: ' + err.message);
     } finally {
       setPassword('');
       setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSignOutLoading(true);
+    setSignOutMessage(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setSignOutMessage(error.message);
+      } else {
+        // After logout, go back to auth (index)
+        router.replace('/');
+      }
+    } catch (err: any) {
+      setSignOutMessage(err?.message ?? 'An unexpected error occurred');
+    } finally {
+      setSignOutLoading(false);
     }
   };
 
@@ -239,14 +240,6 @@ export default function SettingsScreen() {
                 )}
               </MapView>
             </View>
-
-            <Button onPress={setCurrentLocationAsOffice}>
-              <Text>Use current location as office</Text>
-            </Button>
-
-            <Button className="mt-4" onPress={saveTeamSettings}>
-              <Text>Save Settings</Text>
-            </Button>
           </View>
 
           {/* Password reset */}
@@ -275,9 +268,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
+  screen: { flex: 1 },
 
   headerContainer: {
     flexDirection: 'row',

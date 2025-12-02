@@ -1,7 +1,8 @@
+// app/ClockInOut/index.tsx
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
+import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import {
@@ -46,6 +47,20 @@ type TeamType = {
   ClockInStatus: boolean;
 };
 
+type TeamRow = {
+  mId: number;
+  teamId: number;
+  role: string;
+  ClockInStatus: boolean;
+  Teams: {
+    name: string;
+    checkInTime: string;
+    checkOutTime: string;
+    locationLatitude: number;
+    locationLongitude: number;
+  };
+};
+
 const getUserTeams = async (uid: string): Promise<TeamType[]> => {
   const { data, error } = await supabase
     .from('TeamMembers')
@@ -54,16 +69,14 @@ const getUserTeams = async (uid: string): Promise<TeamType[]> => {
     )
     .eq('uId', uid);
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching user teams:', error);
     return [];
   }
-  if (!data) {
-    console.error('No data returned for user teams');
-    return [];
-  }
 
-  const formattedData: TeamType[] = data.map((item) => ({
+  const rows = data as unknown as TeamRow[];
+
+  const formattedData: TeamType[] = rows.map((item) => ({
     teamId: item.teamId,
     mId: item.mId,
     role: item.role,
@@ -76,7 +89,6 @@ const getUserTeams = async (uid: string): Promise<TeamType[]> => {
   }));
 
   console.log('Fetched user teams:', formattedData);
-
   return formattedData;
 };
 
@@ -129,8 +141,8 @@ export default function ClockInOutScreen() {
       setClockInStatus(null);
       return;
     }
-    const selectedTeam = teams.find((team) => team.teamId === selectedTeamId);
-    setClockInStatus(selectedTeam ? selectedTeam.ClockInStatus : null);
+    const team = teams.find((t) => t.teamId === selectedTeamId);
+    setClockInStatus(team ? team.ClockInStatus : null);
   }, [selectedTeamId, teams]);
 
   React.useEffect(() => {
@@ -160,30 +172,26 @@ export default function ClockInOutScreen() {
   React.useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeString = now.toLocaleTimeString();
-      setCurrentTime(timeString);
+      setCurrentTime(now.toLocaleTimeString());
     };
 
     updateTime();
     const intervalId = setInterval(updateTime, 1000);
-
     return () => clearInterval(intervalId);
   }, []);
 
-  // !update! location fetching
   React.useEffect(() => {
     const fetchLocation = async () => {
       try {
-        // Request permission
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        setLoading(true);
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           console.log('Permission denied');
           setLoading(false);
           return;
         }
 
-        // Get location
-        let current = await Location.getCurrentPositionAsync({});
+        const current = await Location.getCurrentPositionAsync({});
         setLocation({
           latitude: current.coords.latitude,
           longitude: current.coords.longitude,
@@ -203,7 +211,7 @@ export default function ClockInOutScreen() {
   const handleClockInOut = async () => {
     setLoading(true);
     try {
-      if (selectedTeamId === null || user === null) {
+      if (selectedTeamId === null || !user) {
         console.error('No team selected or user not logged in');
         setLoading(false);
         return;
@@ -268,7 +276,7 @@ export default function ClockInOutScreen() {
           .from('ClockInOutRecords')
           .insert([
             {
-              mId: team?.mId,
+              mId: team.mId,
               teamId: selectedTeamId,
               timestamp: now.toISOString(),
               inOut: !clockInStatus ? 'IN' : 'OUT',

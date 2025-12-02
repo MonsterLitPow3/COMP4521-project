@@ -85,12 +85,12 @@ export default function FooterBar({ activeTab, onTabPress }: FooterBarProps) {
             iconElement = <MaterialIcons className="-ml-4" name="route" size={24} color={color} />;
           } else if (key === 'dashboard') {
             iconElement = (
-              <MaterialIcons className="-ml-4" name="add-task" size={24} color={color} />
+              <MaterialIcons className="-ml-5" name="add-task" size={24} color={color} />
             );
           } else if (key === 'user') {
-            iconElement = <Feather className="-ml-4" name="user" size={24} color={color} />;
+            iconElement = <Feather className="-ml-5" name="user" size={24} color={color} />;
           } else if (key === 'settings') {
-            iconElement = <Feather className="-ml-4" name="settings" size={24} color={color} />;
+            iconElement = <Feather className="-ml-5" name="settings" size={24} color={color} />;
           }
 
           return (
