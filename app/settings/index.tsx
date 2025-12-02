@@ -9,9 +9,7 @@ import {
   Pressable,
   Platform,
   TextInput,
-  ScrollView,
 } from 'react-native';
-
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
@@ -19,10 +17,6 @@ import { THEME } from '@/lib/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/utils/supabase';
-// import * as React from 'react';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
 
 export default function SettingsScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
@@ -220,16 +214,16 @@ export default function SettingsScreen() {
   const handleResetPassword = async () => {
     try {
       setLoading(true);
-      const user = supabase.auth.getUser();
-      if (!user) throw new Error('No user logged in');
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('No user logged in');
 
       const { error } = await supabase.auth.updateUser({
-        password: password,
+        password,
       });
 
       if (error) throw error;
       alert('Password updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       alert('Error updating password: ' + error.message);
     } finally {
       setPassword('');
@@ -241,34 +235,39 @@ export default function SettingsScreen() {
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={['top', 'left', 'right']}>
-      {/* HEADER */}
-      <View
-        style={[
-          styles.headerContainer,
-          { backgroundColor: '#292D32', paddingTop: headerTopPadding },
-        ]}>
-        <TouchableOpacity onPress={() => router.push('../')} style={styles.headerBackButton}>
-          <AntDesign name="arrow-left" size={20} color="#fff" />
-        </TouchableOpacity>
+      <View style={styles.screen}>
+        <View
+          style={[
+            styles.headerContainer,
+            { backgroundColor: '#292D32', paddingTop: headerTopPadding },
+          ]}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => router.push('../')} style={styles.headerBackButton}>
+              <AntDesign name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
 
-        <Text style={styles.headerTitleText}>Settings</Text>
-        <View style={{ width: 32 }} />
-      </View>
+          <Text style={styles.headerTitleText}>Settings</Text>
 
-      {/* SCROLL CONTENT */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-        {/* Appearance */}
-        <View style={[styles.section, { borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
+          <View style={styles.headerRight} />
+        </View>
 
-          <View style={styles.row}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleColorScheme}
-              thumbColor={isDark ? '#f9fafb' : '#111827'}
-              trackColor={{ false: '#d1d5db', true: '#4b5563' }}
-            />
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appearance</Text>
+
+            <View style={styles.row}>
+              <Text style={[styles.label, { color: colors.foreground }]}>Dark mode</Text>
+              <Switch
+                value={isDark}
+                onValueChange={toggleColorScheme}
+                thumbColor={isDark ? '#f9fafb' : '#111827'}
+                trackColor={{ false: '#d1d5db', true: '#4b5563' }}
+              />
+            </View>
+            <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+              Toggle between light and dark themes. This will affect dashboard and other screens.
+            </Text>
           </View>
         </View>
 
@@ -281,12 +280,11 @@ export default function SettingsScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
+                secureTextEntry
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                placeholderTextColor={colors.mutedForeground}
               />
-              <Button
-                disabled={loading}
-                onPress={handleResetPassword}
-                style={[styles.label, { color: colors.foreground }]}>
+              <Button disabled={loading} onPress={handleResetPassword}>
                 <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
                   {loading ? 'Please wait...' : 'Reset password'}
                 </Text>
@@ -376,11 +374,22 @@ const styles = StyleSheet.create({
   },
 
   headerContainer: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingBottom: 12,
+    paddingBottom: 20,
+    minHeight: 56,
+  },
+  headerLeft: {
+    width: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerRight: {
+    width: 60,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   headerTitleText: {
     flex: 1,
@@ -406,18 +415,21 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   label: { fontSize: 15 },
   helpText: { fontSize: 13 },
   input: {
-    backgroundColor: '#eee',
-    padding: 10,
+    flex: 1,
+    borderWidth: 1,
     borderRadius: 8,
-    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
   },
 });
